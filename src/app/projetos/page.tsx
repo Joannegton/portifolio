@@ -75,14 +75,13 @@ const projetos = {
   ],
   mobile: [
     {
-      titulo: "MathAR - Matemática com Realidade Aumentada",
-      descricao:
-        "Aplicativo revolucionário para aprendizado de matemática com exercícios gamificados e realidade aumentada.",
-      imagem: "/placeholder.svg?height=200&width=300",
-      tecnologias: ["Flutter", "Dart", "Firebase", "ARCore", "TensorFlow Lite"],
-      github: "https://github.com",
-      demo: "https://play.google.com",
-      categoria: "Mobile",
+      titulo: "Psy - Terapeuta Virtual",
+      descricao: "Aplicativo de apoio emocional com IA empática, capaz de conversar com o usuário, sugerir profissionais e promover o autocuidado.",
+      imagem: "/assets/psy.png", 
+      tecnologias: ["Flutter", "Firebase", "OpenAI API", "Node.js", "MongoDB"],
+      github: "https://github.com/Joannegton/psy_terapeuta_virtual/tree/gemini-api", //arrumar para a main(desatualizada)
+      demo: "https://drive.google.com/drive/folders/1TIPXgQI4f-3QaV8vPWJKFaBxDNTY-Nfo?usp=sharing",
+      categoria: "Mobile App",
     },
     {
       titulo: "MindCare - Cuidados com a Saúde Mental",
