@@ -1,6 +1,13 @@
+import { Estatistica } from "@/app/minhasInfos"
 import { motion } from "framer-motion"
 
-export function EstatisticasSection({ estatisticas, estatisticasRef, estatisticasEmView }: any) {
+export interface EstatisticasSectionProps {
+  estatisticas: Estatistica[]
+  estatisticasRef: React.RefObject<HTMLDivElement | null>
+  estatisticasEmView: boolean
+}
+
+export function EstatisticasSection({ estatisticas, estatisticasRef, estatisticasEmView }: EstatisticasSectionProps) {
   return (
     <section ref={estatisticasRef} className="py-20 px-4 relative">
       <div className="container mx-auto">
@@ -10,7 +17,7 @@ export function EstatisticasSection({ estatisticas, estatisticasRef, estatistica
           animate={estatisticasEmView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8 }}
         >
-          {estatisticas.map((stat: any, index: number) => (
+          {estatisticas.map((stat: Estatistica, index: number) => (
             <motion.div
               key={stat.rotulo}
               className="text-center"

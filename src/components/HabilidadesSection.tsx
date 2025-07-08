@@ -1,7 +1,13 @@
 import { motion } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
 
-export function HabilidadesSection({ habilidades, habilidadesRef, habilidadesEmView }: any) {
+interface HabilidadesSectionProps {
+  habilidades: string[]
+  habilidadesRef: React.RefObject<HTMLDivElement | null>
+  habilidadesEmView: boolean
+}
+
+export function HabilidadesSection({ habilidades, habilidadesRef, habilidadesEmView }: HabilidadesSectionProps) {
   return (
     <section ref={habilidadesRef} className="py-20 px-4 relative">
       <div className="container mx-auto">

@@ -6,22 +6,25 @@ const links = {
 }
 
 const habilidades = [
-  "React",
-  "Next.js",
+  "ReactJs",
+  "NextJs",
+  "NestJs",
   "TypeScript",
-  "Node.js",
-  "Python",
-  "PHP",
+  "DDD",
+  "TypeORM",
+  "Kafka",
   "MongoDB",
   "PostgreSQL",
+  "Firebase",
   "Flutter",
   "Kotlin",
-  "Firebase",
+  "Python",
+  "N8n",
   "OpenAI",
+  "Gemini",
   "Machine Learning",
-  "GeoGebra",
   "Zoho",
-  "Educação",
+  "GeoGebra",
 ]
 
 export interface Destaques {
@@ -31,11 +34,11 @@ export interface Destaques {
   cor: string
 }
 
-const DESTAQUES = [
+const destaques = [
   {
     icon: Code,
     titulo: "Desenvolvedor Full Stack",
-    descricao: "Criação de soluções completas com foco em impacto social, web, mobile e IA.",
+    descricao: "Criação de soluções completas com foco em web, mobile e IA.",
     cor: "from-purple-500 to-pink-500",
   },
   {
@@ -58,12 +61,16 @@ const DESTAQUES = [
   },
 ]
 
-
-const estatisticas = [
-  { numero: "60+", rotulo: "Projetos Desenvolvidos", icone: Rocket },
+export type Estatistica = {
+  icone: React.ElementType
+  numero: string
+  rotulo: string
+}
+const estatisticas: Estatistica[] = [
+  { numero: "40+", rotulo: "Projetos Desenvolvidos", icone: Rocket },
   { numero: "700+", rotulo: "Alunos Impactados", icone: Users },
   { numero: "5+", rotulo: "Anos de Experiência", icone: Zap },
-  { numero: "18+", rotulo: "Tecnologias Dominadas", icone: Sparkles },
+  { numero: `${habilidades.length}+`, rotulo: "Tecnologias Dominadas", icone: Sparkles },
 ]
 
-export { habilidades, DESTAQUES as destaques, estatisticas, links }
+export { habilidades, destaques, estatisticas, links }

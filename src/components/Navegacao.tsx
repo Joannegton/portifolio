@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { Menu, X } from "lucide-react"
 import { BotaoMagnetic } from "./BotaoMagnetic"
 import { ThemeToggle } from "./theme-toggle"
+import Image from "next/image"
 
 const navItems = [
   { href: "/", label: "Início" },
@@ -47,7 +48,11 @@ export function Navigation() {
           transition={{ duration: 0.8, delay: 0.2 }}
         >
           <Link href="/" className="text-2xl font-bold gradient-text neon-text">
-            João Silva
+            <div className="w-15 h-15 mx-auto rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 p-0.5 glow-effect">
+              <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
+                <Image src="/assets/eu.jpg" alt="Joannegton" className="rounded-full w-full h-full object-cover" width={60} height={60} />
+              </div>
+            </div>
           </Link>
         </motion.div>
 
