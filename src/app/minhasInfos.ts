@@ -1,4 +1,4 @@
-import { BookOpen, Brain, Code, Rocket, Sparkles, Users, Zap } from "lucide-react"
+import { BookOpen, Brain, Code, Rocket, Sparkles, Users, Zap, GraduationCap, Heart, Target } from "lucide-react"
 
 const links = {
   'linkedin': '',
@@ -73,4 +73,66 @@ const estatisticas: Estatistica[] = [
   { numero: `${habilidades.length}+`, rotulo: "Tecnologias Dominadas", icone: Sparkles },
 ]
 
-export { habilidades, destaques, estatisticas, links }
+const formacaoAcademica = [
+  {
+    titulo: "Tecnólogo em Análise e Desenvolvimento de Sistemas",
+    instituicao: "Centro Universitário Eniac",
+    ano: "2023-2025",
+    descricao: "Desenvolvimento de software.",
+  },
+  {
+    titulo: "Pós graduação em Matemática Financeira e Estatística",
+    instituicao: "Universidade Educamais",
+    ano: "2020-2022",
+    descricao: "Especialização em matemática aplicada à educação e finanças",
+  },
+  {
+    titulo: "Licenciatura em Matemática",
+    instituicao: "Universidade Nove de Julho",
+    ano: "2018-2020",
+    descricao: "Formação pedagógica com ênfase em tecnologias educacionais e metodologias ativas",
+  }
+]
+
+const experienciaProfissional = [
+  {
+    cargo: "Desenvolvedor Full Stack",
+    empresa: "VerdeCard Instituição de Pagamento S.A.",
+    periodo: "2024 - Presente",
+    descricao: "Desenvolvimento de aplicações web e mobile, APIs RESTful e soluções em nuvem",
+  },
+  {
+    cargo: "Professor de Matemática e Programação",
+    empresa: "Secretaria de Educação de São Paulo",
+    periodo: "2020 - Presente",
+    descricao: "Ensino de matemática e programação para ensino médio, desenvolvimento de projetos interdisciplinares e lógica de programação",
+  },
+  {
+    cargo: "Desenvolvedor Freelancer",
+    empresa: "Projetos Independentes",
+    periodo: "2021 - Presente",
+    descricao: "Desenvolvimento de soluções personalizadas para educação, saúde mental entre outros setores, com foco em acessibilidade e inclusão digital",
+  },
+]
+
+const valores = [
+  {
+    icone: Heart,
+    titulo: "Impacto Social Positivo",
+    descricao:
+      "Acredito que a tecnologia deve servir para melhorar a vida das pessoas e criar um mundo mais justo e inclusivo.",
+  },
+  {
+    icone: GraduationCap,
+    titulo: "Educação Transformadora",
+    descricao:
+      "A educação é a ferramenta mais poderosa para transformar vidas e sociedades. Busco sempre inovar no ensino.",
+  },
+  {
+    icone: Target,
+    titulo: "Excelência e Qualidade",
+    descricao: "Comprometo-me com a qualidade técnica e a melhoria contínua em todos os projetos que desenvolvo.",
+  },
+]
+
+export { habilidades, destaques, estatisticas, links, formacaoAcademica, experienciaProfissional, valores }

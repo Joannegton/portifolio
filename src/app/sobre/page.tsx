@@ -3,69 +3,7 @@
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { GraduationCap, Heart, Target } from "lucide-react"
-
-const formacaoAcademica = [
-  {
-    titulo: "Mestrado em Ciência da Computação",
-    instituicao: "Universidade Federal de São Paulo",
-    ano: "2020-2022",
-    descricao: "Especialização em Inteligência Artificial e Machine Learning aplicados à educação e saúde mental",
-  },
-  {
-    titulo: "Licenciatura em Matemática",
-    instituicao: "Universidade de São Paulo",
-    ano: "2016-2020",
-    descricao: "Formação pedagógica com ênfase em tecnologias educacionais e metodologias ativas",
-  },
-  {
-    titulo: "Tecnólogo em Sistemas para Internet",
-    instituicao: "Instituto Federal de São Paulo",
-    ano: "2014-2017",
-    descricao: "Desenvolvimento web full stack e programação orientada a objetos",
-  },
-]
-
-const experienciaProfissional = [
-  {
-    cargo: "Professor de Matemática e Programação",
-    empresa: "Colégio Inovação Educacional",
-    periodo: "2020 - Presente",
-    descricao: "Ensino de matemática e programação para ensino médio, desenvolvimento de projetos interdisciplinares",
-  },
-  {
-    cargo: "Desenvolvedor Full Stack Sênior",
-    empresa: "TechSolutions Brasil",
-    periodo: "2019 - 2022",
-    descricao: "Desenvolvimento de aplicações web e mobile, APIs RESTful e soluções em nuvem",
-  },
-  {
-    cargo: "Desenvolvedor Freelancer",
-    empresa: "Projetos Independentes",
-    periodo: "2018 - Presente",
-    descricao: "Desenvolvimento de soluções personalizadas para educação e saúde mental",
-  },
-]
-
-const valores = [
-  {
-    icone: Heart,
-    titulo: "Impacto Social Positivo",
-    descricao:
-      "Acredito que a tecnologia deve servir para melhorar a vida das pessoas e criar um mundo mais justo e inclusivo.",
-  },
-  {
-    icone: GraduationCap,
-    titulo: "Educação Transformadora",
-    descricao:
-      "A educação é a ferramenta mais poderosa para transformar vidas e sociedades. Busco sempre inovar no ensino.",
-  },
-  {
-    icone: Target,
-    titulo: "Excelência e Qualidade",
-    descricao: "Comprometo-me com a qualidade técnica e a melhoria contínua em todos os projetos que desenvolvo.",
-  },
-]
+import { experienciaProfissional, formacaoAcademica, valores } from "../minhasInfos"
 
 export default function Sobre() {
   return (

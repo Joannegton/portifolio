@@ -4,7 +4,7 @@ import { BotaoMagnetic } from "@/components/BotaoMagnetic"
 import { ArrowRight, Rocket } from "lucide-react"
 import Link from "next/link"
 
-export function CtaSection() {
+export function ContatoSection() {
   return (
     <section className="py-20 px-4 relative">
       <div className="container mx-auto text-center">

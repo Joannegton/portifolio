@@ -6,10 +6,10 @@ import { HeroSection } from "@/components/HeroSection"
 import { EstatisticasSection } from "@/components/EstatisticasSection"
 import { HabilidadesSection } from "@/components/HabilidadesSection"
 import { DestaquesSection } from "@/components/DestaquesSection"
-import { CtaSection } from "@/components/CtaSection"
+import { ContatoSection } from "@/components/CtaSection"
 import { destaques, estatisticas, habilidades } from "./minhasInfos"
 
-export default function Inicio() {
+export default function Home() {
   const { scrollYProgress } = useScroll()
   const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"])
   const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0])
@@ -47,7 +47,7 @@ export default function Inicio() {
         destaquesRef={destaquesRef} 
         destaquesEmView={destaquesEmView} 
       />
-      <CtaSection />
+      <ContatoSection />
     </div>
   )
 }
