@@ -10,49 +10,8 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Mail, Phone, MapPin, Download, Github, Linkedin, FileText } from "lucide-react"
-
-const informacoesContato = [
-  {
-    icone: Mail,
-    titulo: "Email Profissional",
-    valor: "joao.silva@email.com",
-    href: "mailto:joao.silva@email.com",
-  },
-  {
-    icone: Phone,
-    titulo: "Telefone/WhatsApp",
-    valor: "+55 (11) 99999-9999",
-    href: "tel:+5511999999999",
-  },
-  {
-    icone: MapPin,
-    titulo: "Localização",
-    valor: "São Paulo, SP - Brasil",
-    href: "#",
-  },
-]
-
-const linksSociais = [
-  {
-    icone: Github,
-    titulo: "GitHub",
-    href: "https://github.com",
-    usuario: "@joaosilva-dev",
-  },
-  {
-    icone: Linkedin,
-    titulo: "LinkedIn",
-    href: "https://linkedin.com",
-    usuario: "/in/joaosilva-dev",
-  },
-  {
-    icone: FileText,
-    titulo: "Currículo Lattes",
-    href: "http://lattes.cnpq.br",
-    usuario: "Ver Currículo Completo",
-  },
-]
+import { Download } from "lucide-react"
+import { informacoesContato, linksSociais } from "../minhasInfos"
 
 export default function Contato() {
   const [dadosFormulario, setDadosFormulario] = useState({
@@ -91,7 +50,7 @@ export default function Contato() {
   }
 
   const baixarCV = () => {
-    // Simular download do CV
+    // TODO Simular download do CV
     toast.info("Download iniciado 📄", {
       description: "O currículo será baixado em instantes.",
     })
@@ -114,7 +73,78 @@ export default function Contato() {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="">
+          {/* Informações de Contato */}
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8 }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:grid-cols-3 mb-12"
+          >
+            {/* Detalhes de Contato */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Informações de Contato</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {informacoesContato.map((info) => (
+                  <div key={info.titulo} className="flex items-center space-x-3">
+                    <info.icone className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="font-medium">{info.titulo}</p>
+                      <a
+                        href={info.href}
+                        className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        {info.valor}
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Download CV */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Baixar Currículo</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Baixe meu currículo completo em PDF para conhecer mais detalhes sobre minha experiência e formação.
+                </p>
+                <Button onClick={baixarCV} className="w-full">
+                  <Download className="mr-2 h-4 w-4" />
+                  Baixar Currículo em PDF
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Links Sociais */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Redes Sociais e Perfis</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1">
+                {linksSociais.map((social) => (
+                  <a
+                    key={social.titulo}
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center space-x-3 p-3 rounded-lg hover:bg-muted transition-colors"
+                  >
+                    <social.icone className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="font-medium">{social.titulo}</p>
+                      <p className="text-sm text-muted-foreground">{social.usuario}</p>
+                    </div>
+                  </a>
+                ))}
+              </CardContent>
+            </Card>
+          </motion.div>
+
           {/* Formulário de Contato */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
@@ -180,77 +210,6 @@ export default function Contato() {
                     {enviando ? "Enviando Mensagem..." : "Enviar Mensagem"}
                   </Button>
                 </form>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Informações de Contato */}
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
-            className="space-y-6"
-          >
-            {/* Detalhes de Contato */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Informações de Contato</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {informacoesContato.map((info) => (
-                  <div key={info.titulo} className="flex items-center space-x-3">
-                    <info.icone className="h-5 w-5 text-primary" />
-                    <div>
-                      <p className="font-medium">{info.titulo}</p>
-                      <a
-                        href={info.href}
-                        className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        {info.valor}
-                      </a>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Download CV */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Baixar Currículo</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Baixe meu currículo completo em PDF para conhecer mais detalhes sobre minha experiência e formação.
-                </p>
-                <Button onClick={baixarCV} className="w-full">
-                  <Download className="mr-2 h-4 w-4" />
-                  Baixar Currículo em PDF
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Links Sociais */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Redes Sociais e Perfis</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {linksSociais.map((social) => (
-                  <a
-                    key={social.titulo}
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-3 p-3 rounded-lg hover:bg-muted transition-colors"
-                  >
-                    <social.icone className="h-5 w-5 text-primary" />
-                    <div>
-                      <p className="font-medium">{social.titulo}</p>
-                      <p className="text-sm text-muted-foreground">{social.usuario}</p>
-                    </div>
-                  </a>
-                ))}
               </CardContent>
             </Card>
           </motion.div>
