@@ -1,23 +1,34 @@
-import { motion, MotionValue } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { ArrowRight, Sparkles, Zap } from "lucide-react"
-import Link from "next/link"
-import { BolhasAnimadas } from "@/components/BolhasAnimada"
-import { BotaoMagnetic } from "@/components/BotaoMagnetic"
-import { links } from "@/app/minhasInfos"
-import Image from "next/image"
+import { motion, MotionValue } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, Sparkles, Zap } from "lucide-react";
+import Link from "next/link";
+import { BolhasAnimadas } from "@/components/BolhasAnimada";
+import { BotaoMagnetic } from "@/components/BotaoMagnetic";
+import { links } from "@/app/minhasInfos";
+import Image from "next/image";
 
 interface HeroSectionProps {
-    heroRef: React.RefObject<HTMLDivElement | null>;
-    heroEmView: boolean;
-    y: MotionValue<string>;
-    opacity: MotionValue<number>;
+  heroRef: React.RefObject<HTMLDivElement | null>;
+  heroEmView: boolean;
+  y: MotionValue<string>;
+  opacity: MotionValue<number>;
 }
-export function HeroSection({ heroRef, heroEmView, y, opacity }: HeroSectionProps ) {
+export function HeroSection({
+  heroRef,
+  heroEmView,
+  y,
+  opacity,
+}: HeroSectionProps) {
   return (
-    <section ref={heroRef} className="hero-gradient min-h-screen flex items-center justify-center px-4 relative">
+    <section
+      ref={heroRef}
+      className="hero-gradient min-h-screen flex items-center justify-center px-4 relative"
+    >
       <BolhasAnimadas />
-      <motion.div className="container mx-auto text-center relative z-10" style={{ y, opacity }}>
+      <motion.div
+        className="container mx-auto text-center relative z-10"
+        style={{ y, opacity }}
+      >
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           animate={heroEmView ? { opacity: 1, y: 0 } : {}}
@@ -27,16 +38,21 @@ export function HeroSection({ heroRef, heroEmView, y, opacity }: HeroSectionProp
             className="mb-6"
             initial={{ scale: 0 }}
             animate={heroEmView ? { scale: 1 } : {}}
-            transition={{ duration: 0.8, delay: 0.2, type: "spring", stiffness: 100 }}
+            transition={{
+              duration: 0.8,
+              delay: 0.2,
+              type: "spring",
+              stiffness: 100,
+            }}
           >
             <div className="w-32 h-32 mx-auto rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 p-1 glow-effect">
               <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
-                <Image 
-                  src={links.fotoPerfil} 
-                  alt="Avatar" 
+                <Image
+                  src="/assets/eu.jpg"
+                  alt="Avatar"
                   width={150}
                   height={150}
-                  className="w-full h-full object-cover rounded-full" 
+                  className="w-full h-full object-cover rounded-full"
                 />
               </div>
             </div>
@@ -48,7 +64,10 @@ export function HeroSection({ heroRef, heroEmView, y, opacity }: HeroSectionProp
             animate={heroEmView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 1, delay: 0.4 }}
           >
-            Olá, eu sou <span className="gradient-text neon-text block md:inline">Joannegton</span>
+            Olá, eu sou{" "}
+            <span className="gradient-text neon-text block md:inline">
+              Joannegton
+            </span>
           </motion.h1>
 
           <motion.div
@@ -59,7 +78,8 @@ export function HeroSection({ heroRef, heroEmView, y, opacity }: HeroSectionProp
           >
             <div className="whitespace-normal break-words">
               <span className="typing-animation">
-                Desenvolvedor Full Stack, Professor, Palestrante e Criador de Projetos com Foco em Tecnologia e Matemática
+                Desenvolvedor Full Stack, Professor, Palestrante e Criador de
+                Projetos com Foco em Tecnologia e Matemática
               </span>
             </div>
           </motion.div>
@@ -112,5 +132,5 @@ export function HeroSection({ heroRef, heroEmView, y, opacity }: HeroSectionProp
         </div>
       </motion.div>
     </section>
-  )
+  );
 }

@@ -8,7 +8,7 @@ import { Footer } from "@/components/footer";
 import { ScrollProgresso } from "@/components/scrollProgresso";
 import { ThemeProvider } from "@/components/themeProvider";
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Wellington Tavares Galbarini - Desenvolvedor Full Stack & Professor",
@@ -24,11 +24,17 @@ export const metadata: Metadata = {
     "programação",
     "educação",
   ],
-  authors: [{ name: "Wellington Tavares Galbarini", url: "https://github.com/joannegton" }],
+  authors: [
+    {
+      name: "Wellington Tavares Galbarini",
+      url: "https://github.com/joannegton",
+    },
+  ],
   creator: "Joannegton",
   publisher: "Joannegton",
   openGraph: {
-    title: "Wellington Tavares Galbarini - Desenvolvedor Full Stack & Professor",
+    title:
+      "Wellington Tavares Galbarini - Desenvolvedor Full Stack & Professor",
     description:
       "Professor, Desenvolvedor Full Stack, Palestrante e Criador de Projetos com Foco em Tecnologia e Matemática",
     type: "website",
@@ -37,11 +43,12 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Wellington Tavares Galbarini - Desenvolvedor Full Stack & Professor",
+    title:
+      "Wellington Tavares Galbarini - Desenvolvedor Full Stack & Professor",
     description:
       "Professor, Desenvolvedor Full Stack, Palestrante e Criador de Projetos com Foco em Tecnologia e Matemática",
   },
-}
+};
 
 export default function RootLayout({
   children,
@@ -50,10 +57,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body
-        className={inter.className}
-      >
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <body className={inter.className}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
           <div className="min-h-screen bg-background relative">
             <ScrollProgresso />
             <FloatingParticles />
