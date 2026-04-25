@@ -1,0 +1,52 @@
+version: '3.9'
+
+# ============================================================================
+# SERVIÇOS
+# ============================================================================
+services:
+  app:
+    build:
+      context: .                    
+      dockerfile: Dockerfile        
+      args:
+        - NODE_ENV=production       
+
+    container_name: portfolio-app
+
+    ports:
+      - "3000:3000"
+
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_TELEMETRY_DISABLED: 1   # Desabilita telemetria do Next.js
+
+    volumes:
+      - ./logs:/app/logs
+
+    restart: unless-stopped
+
+    deploy:
+      resources:
+        limits:
+          cpus: '1'        # Máximo de 1 CPU
+          memory: 1G       # Máximo de 1GB de memória
+        reservations:
+          cpus: '0.5'      # Reserva mínima de 0.5 CPU
+          memory: 512M     # Reserva mínima de 512MB
+
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s       # Verifica a cada 30 segundos
+      timeout: 10s        # Timeout de 10 segundos por verificação
+      retries: 3          # Considera inativa após 3 falhas
+      start_period: 15s   # Aguarda 15s antes de iniciar verificações
+
+    # Logging configuration
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"    # Tamanho máximo por arquivo de log
+        max-file: "5"      # Mantém no máximo 5 arquivos de log
+        compress: "true"   # Compacta logs antigos (reduz espaço)
+        labels: "app=portfolio"  # Tag para identificar logs

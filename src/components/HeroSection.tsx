@@ -4,7 +4,6 @@ import { ArrowRight, Sparkles, Zap } from "lucide-react";
 import Link from "next/link";
 import { BolhasAnimadas } from "@/components/BolhasAnimada";
 import { BotaoMagnetic } from "@/components/BotaoMagnetic";
-import { links } from "@/app/minhasInfos";
 import Image from "next/image";
 
 interface HeroSectionProps {
