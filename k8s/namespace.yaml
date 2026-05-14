@@ -147,6 +147,7 @@ spec:
 
   # ========== EGRESS (SAÍDA) ==========
   # Para onde pods podem enviar tráfego
+  egress:
 
   # DNS (porta 53)
   - to:
@@ -177,15 +178,6 @@ spec:
     ports:
     - protocol: TCP
       port: 3000
-
-  # PostgreSQL (se usar banco em outro namespace)
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          name: postgres
-    ports:
-    - protocol: TCP
-      port: 5432
 
 ---
 # ========== LIMIT RANGE ==========
