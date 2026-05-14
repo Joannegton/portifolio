@@ -1,0 +1,222 @@
+# ============================================================================
+# NAMESPACE + RBAC + QUOTAS - Configuração de Produção
+# ============================================================================
+# Cria namespace isolado, service account, roles e quotas de recursos
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: portfolio-prod
+  labels:
+    environment: production
+    app: portfolio
+  annotations:
+    description: "Production namespace para Portfolio App"
+
+---
+# ========== SERVICE ACCOUNT ==========
+# Identidade da aplicação dentro do Kubernetes
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: portfolio-app-sa
+  namespace: portfolio-prod
+  labels:
+    app: portfolio
+  annotations:
+    description: "Service account para aplicação portfolio"
+
+---
+# ========== ROLE ==========
+# Define permissões que a aplicação pode ter
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: portfolio-app-role
+  namespace: portfolio-prod
+  labels:
+    app: portfolio
+rules:
+# Ler ConfigMaps (variáveis de ambiente)
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+
+# Ler Secrets (se necessário)
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list"]
+
+# Ler informações de Pods (para descoberta de serviço)
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+
+# Ler Services
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "list", "watch"]
+
+---
+# ========== ROLEBINDING ==========
+# Vincula a Role ao Service Account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: portfolio-app-rolebinding
+  namespace: portfolio-prod
+  labels:
+    app: portfolio
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: portfolio-app-role
+subjects:
+- kind: ServiceAccount
+  name: portfolio-app-sa
+  namespace: portfolio-prod
+
+---
+# ========== RESOURCE QUOTA ==========
+# Limita total de recursos que o namespace pode usar
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: portfolio-prod-quota
+  namespace: portfolio-prod
+  labels:
+    app: portfolio
+spec:
+  hard:
+    # CPU e Memory
+    requests.cpu: "4"              # Total máximo de CPU requests
+    requests.memory: "4Gi"         # Total máximo de memória requests
+    limits.cpu: "8"                # Total máximo de CPU limits
+    limits.memory: "8Gi"           # Total máximo de memória limits
+
+    # Contagem de recursos
+    pods: "20"                     # Máximo de pods
+    services: "5"                  # Máximo de services
+    replicationcontrollers: "5"    # Máximo de replication controllers
+    resourcequotas: "1"            # Máximo de resource quotas
+
+    # Armazenamento
+    persistentvolumeclaims: "2"    # Máximo de PVCs
+
+    # Secrets e ConfigMaps
+    secrets: "10"
+    configmaps: "10"
+
+---
+# ========== NETWORK POLICY ==========
+# Isolamento de rede - controla tráfego entre pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: portfolio-network-policy
+  namespace: portfolio-prod
+  labels:
+    app: portfolio
+spec:
+  podSelector:
+    matchLabels:
+      app: portfolio
+
+  policyTypes:
+  - Ingress
+  - Egress
+
+  # ========== INGRESS (ENTRADA) ==========
+  # De onde pods podem receber tráfego
+  ingress:
+
+  # Permite do Traefik (está em kube-system no RKE2)
+  - from:
+    - namespaceSelector: {}      # Permite de qualquer namespace
+    ports:
+    - protocol: TCP
+      port: 3000
+
+  # Permite da mesma namespace
+  - from:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 3000
+
+  # ========== EGRESS (SAÍDA) ==========
+  # Para onde pods podem enviar tráfego
+
+  # DNS (porta 53)
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53
+
+  # HTTPS (porta 443) - APIs externas
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+
+  # HTTP (porta 80) - APIs externas
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 80
+
+  # Comunicação interna entre pods
+  - to:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 3000
+
+  # PostgreSQL (se usar banco em outro namespace)
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+
+---
+# ========== LIMIT RANGE ==========
+# Define limites padrão para containers em falta de configuração
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: portfolio-limitrange
+  namespace: portfolio-prod
+spec:
+  limits:
+  # Limites para Containers
+  - max:
+      cpu: "1000m"
+      memory: "1Gi"
+    min:
+      cpu: "100m"
+      memory: "64Mi"
+    default:
+      cpu: "500m"
+      memory: "512Mi"
+    defaultRequest:
+      cpu: "250m"
+      memory: "256Mi"
+    type: Container
+
+  # Limites para Pods
+  - max:
+      cpu: "2000m"
+      memory: "2Gi"
+    min:
+      cpu: "100m"
+      memory: "64Mi"
+    type: Pod

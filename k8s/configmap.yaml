@@ -1,0 +1,21 @@
+# ============================================================================
+# CONFIGMAP - Armazena configurações e variáveis de ambiente
+# ============================================================================
+# ConfigMap centraliza dados de configuração NÃO sensíveis
+# Mudanças aqui afetam TODOS os pods ao fazer redeploy
+# Para dados sensíveis (senhas), use Secrets ao invés de ConfigMap
+
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: portfolio-config             # Nome referenciado no deployment.yaml
+  namespace: default                 # Mesmo namespace
+  labels:
+    app: portfolio                   # Identificação
+
+# ========== DADOS DE CONFIGURAÇÃO ==========
+data:                                # Key-value pairs injetadas como env vars
+  NODE_ENV: "production"             # Ambiente da aplicação (production/development)
+  NEXT_TELEMETRY_DISABLED: "1"       # Desabilita telemetria do Next.js (privacidade)
+  PORT: "3000"                       # Porta que a aplicação escuta

@@ -1,0 +1,224 @@
+# ============================================================================
+# DEPLOYMENT + PDB - Configuração de Produção
+# ============================================================================
+# Deploy com 3 replicas, health checks, segurança e disponibilidade
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: portfolio-app
+  namespace: portfolio-prod
+  labels:
+    app: portfolio
+    version: v1
+    environment: production
+  annotations:
+    description: "Portfolio Next.js Application"
+    contact: "joannegton@gmail.com"
+
+spec:
+  # ========== REPLICAÇÃO ==========
+  replicas: 3 # 3 replicas para alta disponibilidade
+
+  revisionHistoryLimit: 5 # Manter últimas 5 revisões (para rollback)
+
+  # ========== ESTRATÉGIA DE ATUALIZAÇÃO ==========
+  strategy:
+    type: RollingUpdate # Atualizar gradualmente (sem downtime)
+    rollingUpdate:
+      maxSurge: 1 # Máximo 1 pod extra durante update
+      maxUnavailable: 0 # Nunca deixar todos indisponíveis
+
+  # ========== SELETOR ==========
+  selector:
+    matchLabels:
+      app: portfolio
+
+  # ========== TEMPLATE DO POD ==========
+  template:
+    metadata:
+      labels:
+        app: portfolio
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true" # Habilitar scrape Prometheus
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
+
+    spec:
+      # ========== SERVICE ACCOUNT ==========
+      serviceAccountName: portfolio-app-sa # Vinculado ao RBAC
+
+      # ========== SECURITY CONTEXT (POD) ==========
+      securityContext:
+        runAsNonRoot: true # NÃO roda como root
+        runAsUser: 1001 # User ID (vem do Dockerfile)
+        runAsGroup: 1001
+        fsGroup: 1001
+        seccompProfile:
+          type: RuntimeDefault # Secure compute mode
+
+      # ========== CONTAINERS ==========
+      containers:
+        - name: app
+          image: joannegton/portfolio:v1.0.0
+          imagePullPolicy: IfNotPresent
+
+          # ========== PORTS ==========
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+
+          # ========== VARIÁVEIS DE AMBIENTE ==========
+          envFrom:
+            - configMapRef:
+                name: portfolio-config # Configuração principal
+            - configMapRef:
+                name: portfolio-database # Configuração do banco de dados
+
+          # Secrets (dados sensíveis)
+          # Descomente se tiver secrets:
+          # - secretRef:
+          #     name: portfolio-secrets
+
+          env:
+            - name: HOSTNAME # Nome do pod
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_IP # IP do pod
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POD_NAMESPACE # Namespace
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+
+            # ========== SECRETS INDIVIDUAIS ==========
+            # Se preferir injetar apenas alguns secrets:
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: DB_PASSWORD
+                  optional: true # Não falhar se secret não existir
+
+          # ========== RESOURCE LIMITS ==========
+          resources:
+            requests: # Garantido/reservado
+              cpu: 250m # 0.25 CPU
+              memory: 256Mi # 256MB RAM
+            limits: # Máximo permitido
+              cpu: 500m # 0.5 CPU
+              memory: 512Mi # 512MB RAM
+
+          # ========== HEALTH CHECKS ==========
+
+          # Liveness Probe: Verifica se a app está viva
+          livenessProbe:
+            httpGet:
+              path: / # Faz GET em /
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 30 # Espera 30s antes de verificar
+            periodSeconds: 10 # Verifica a cada 10s
+            timeoutSeconds: 5 # Timeout de 5s
+            successThreshold: 1 # 1 sucesso = OK
+            failureThreshold: 3 # 3 falhas = restart
+
+          # Readiness Probe: Verifica se pode receber tráfego
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 10 # Espera 10s antes de verificar
+            periodSeconds: 5 # Verifica a cada 5s (mais rápido)
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 2 # 2 falhas = remove do load balancer
+
+          # Startup Probe: Permite tempo maior para iniciar (K8s 1.16+)
+          startupProbe:
+            httpGet:
+              path: /
+              port: http
+            failureThreshold: 30 # Máximo 30 falhas
+            periodSeconds: 10 # Verifica a cada 10s = máximo 5min
+
+          # ========== SECURITY CONTEXT (CONTAINER) ==========
+          securityContext:
+            allowPrivilegeEscalation: false # Não permitir escalação de privilégio
+            capabilities:
+              drop:
+                - ALL # Remove todas as capabilities
+            readOnlyRootFilesystem: false # Permite /tmp (logs, cache)
+            runAsNonRoot: true
+            runAsUser: 1001
+
+          # ========== VOLUME MOUNTS ==========
+          volumeMounts:
+            - name: tmp # Diretório temporário
+              mountPath: /tmp
+            - name: cache # Cache do Next.js
+              mountPath: /app/.next/cache
+
+          # ========== LIFECYCLE HOOKS ==========
+          lifecycle:
+            # Pre-stop: Graceful shutdown
+            preStop:
+              exec:
+                command: ["/bin/sh", "-c", "sleep 15"] # Dar tempo para drenar conexões
+
+      # ========== POD AFFINITY ==========
+      # Distribuir pods em diferentes nós
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - portfolio
+                topologyKey: kubernetes.io/hostname # Em nós diferentes
+
+      # ========== TOLERATIONS ==========
+      # Tolerar taints específicas (se houver)
+      tolerations:
+        - key: "dedicated"
+          operator: "Equal"
+          value: "portfolio"
+          effect: "NoSchedule"
+
+      # ========== VOLUMES ==========
+      volumes:
+        - name: tmp
+          emptyDir: {} # Volume temporário em memória
+        - name: cache
+          emptyDir: {}
+
+      # ========== TERMINATION GRACE PERIOD ==========
+      # Tempo máximo para desligar gracefully
+      terminationGracePeriodSeconds: 30
+
+---
+# ========== POD DISRUPTION BUDGET ==========
+# Garante mínimo de pods rodando durante disrupções
+# (updates de nó, evictions, etc)
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: portfolio-pdb
+  namespace: portfolio-prod
+  labels:
+    app: portfolio
+spec:
+  minAvailable: 2 # Mínimo 2 pods sempre rodando
+  selector:
+    matchLabels:
+      app: portfolio

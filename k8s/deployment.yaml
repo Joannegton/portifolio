@@ -1,0 +1,108 @@
+# ============================================================================
+# DEPLOYMENT - Define como a aplicação Portfolio roda no Kubernetes
+# ============================================================================
+# Um Deployment gerencia quantos e como os containers rodam
+# Ele cria e mantém os Pods (instâncias da aplicação)
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: portfolio-app                # Nome único deste deployment
+  namespace: default                 # Isolamento virtual (pode ter múltiplos namespaces)
+  labels:
+    app: portfolio                   # Label para identificar (usado por Services e Ingress)
+    version: v1                      # Versão do deployment
+
+spec:
+  # ========== REPLICAÇÃO ==========
+  replicas: 3                        # Quantas instâncias da app vão rodar (HA - alta disponibilidade)
+
+  # ========== ESTRATÉGIA DE ATUALIZAÇÃO ==========
+  strategy:
+    type: RollingUpdate              # Atualiza de forma gradual, SEM downtime
+    rollingUpdate:
+      maxSurge: 1                    # Durante atualização: máximo 1 pod extra além do replicas
+      maxUnavailable: 0              # Durante atualização: NUNCA deixa todos indisponíveis
+
+  # ========== SELETOR DE PODS ==========
+  selector:
+    matchLabels:
+      app: portfolio                 # Gerencia TODOS os pods com label app=portfolio
+
+  # ========== TEMPLATE DO POD ==========
+  template:
+    metadata:
+      labels:
+        app: portfolio               # Este label identifica cada pod criado
+
+    spec:
+      # ========== CONTAINERS ==========
+      containers:
+      - name: app                    # Nome do container dentro do pod
+        image: joannegton/portfolio:latest  # Imagem Docker (seu-usuario/app:versão)
+        imagePullPolicy: Always      # Sempre puxa a versão mais recente do Docker Hub
+
+        # ========== PORTA ==========
+        ports:
+        - name: http                 # Nome referenciado no Service
+          containerPort: 3000        # Porta da aplicação Next.js
+          protocol: TCP
+
+        # ========== VARIÁVEIS DE AMBIENTE ==========
+        envFrom:
+        - configMapRef:
+            name: portfolio-config   # Injeta variáveis do arquivo configmap.yaml
+
+        # ========== LIMITES DE RECURSOS ==========
+        resources:
+          # Recursos GARANTIDOS/RESERVADOS para este container
+          requests:
+            cpu: 250m                # Mínimo: 0.25 CPU (1000m = 1 CPU)
+            memory: 256Mi            # Mínimo: 256MB de RAM
+
+          # Limites MÁXIMOS que pode usar
+          limits:
+            cpu: 500m                # Máximo: 0.5 CPU (será pausado se exceder)
+            memory: 512Mi            # Máximo: 512MB de RAM (processo morto se exceder)
+
+        # ========== HEALTH CHECKS ==========
+        # Verifica se a aplicação está VIVA (está rodando)
+        livenessProbe:
+          httpGet:
+            path: /                  # Faz um GET em http://localhost:3000/
+            port: http               # Usa a porta definida acima
+          initialDelaySeconds: 30    # Espera 30s após iniciar antes de verificar
+          periodSeconds: 10          # Verifica a cada 10 segundos
+          timeoutSeconds: 5          # Máximo 5s de espera pela resposta
+          failureThreshold: 3        # Reinicia o pod após 3 falhas consecutivas
+
+        # Verifica se a aplicação está PRONTA (pode receber requisições)
+        readinessProbe:
+          httpGet:
+            path: /
+            port: http
+          initialDelaySeconds: 10    # Espera 10s antes de verificar
+          periodSeconds: 5           # Verifica a cada 5s (mais rápido que liveness)
+          timeoutSeconds: 3          # Máximo 3s de espera
+          failureThreshold: 2        # Remove do load balancer após 2 falhas
+
+        # ========== SEGURANÇA ==========
+        securityContext:
+          runAsNonRoot: true         # NÃO roda como root (segurança)
+          runAsUser: 1001            # Roda como user ID 1001 (vem do Dockerfile)
+          readOnlyRootFilesystem: false  # Permite escrever em /tmp (logs, cache)
+
+      # ========== DISTRIBUIÇÃO DE PODS ==========
+      affinity:
+        podAntiAffinity:             # Tenta manter pods SEPARADOS
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100              # Preferência (não é obrigatório)
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - portfolio        # Evita rodar 2+ pods "portfolio" no mesmo nó
+              topologyKey: kubernetes.io/hostname  # Nó diferente

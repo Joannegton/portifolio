@@ -1,0 +1,57 @@
+# ============================================================================
+# KUSTOMIZATION - Produção
+# ============================================================================
+# Aplicar com: kubectl apply -k k8s/prod/
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: portfolio-prod
+
+# ========== RECURSOS ==========
+resources:
+  - namespace.yaml              # Namespace + RBAC + Quotas
+  - configmap.yaml              # Variáveis de ambiente
+  - deployment-prod.yaml        # Deployment + PDB
+  - service-prod.yaml           # Service
+  - ingressroute-prod.yaml      # IngressRoute + Middlewares
+
+# ========== LABELS COMUNS ==========
+commonLabels:
+  app: portfolio
+  environment: production
+  managed-by: kustomize
+  version: v1
+
+# ========== ANOTAÇÕES COMUNS ==========
+commonAnnotations:
+  created-by: portfolio-devops
+  managed-version: "1.0"
+
+# ========== IMAGENS ==========
+# Atualizar imagem base (útil para CI/CD)
+images:
+- name: joannegton/portfolio
+  newName: joannegton/portfolio
+  newTag: v1.0.0
+
+# ========== REPLICAS ==========
+# Pode ser sobrescrito em overlays
+replicas:
+- name: portfolio-app
+  count: 3
+
+# ========== PATCHES ==========
+# Sobrescrever valores específicos se necessário
+# patchesStrategicMerge:
+# - deployment-patch.yaml
+
+# ========== VARIABLES ==========
+vars:
+- name: NAMESPACE
+  objref:
+    kind: Namespace
+    name: portfolio-prod
+    apiVersion: v1
+  fieldref:
+    fieldpath: metadata.name

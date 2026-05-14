@@ -1,0 +1,37 @@
+# ============================================================================
+# SERVICE - Exposição Interna (Traefik faz a exposição para internet)
+# ============================================================================
+# ClusterIP: apenas tráfego interno do cluster
+# Traefik roteia o tráfego externo (HTTPS) para este service
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: portfolio-app
+  namespace: portfolio-prod
+  labels:
+    app: portfolio
+    environment: production
+  annotations:
+    description: "Service interno para aplicação portfolio"
+
+spec:
+  # ========== TIPO ==========
+  type: ClusterIP                  # Interno apenas (Traefik acessa via este IP)
+
+  # ========== SELETOR ==========
+  selector:
+    app: portfolio                 # Roteia traffic para pods com este label
+
+  # ========== PORTS ==========
+  ports:
+  - name: http
+    port: 80                       # Porta do service (interno)
+    targetPort: 3000               # Porta do container
+    protocol: TCP
+
+  # ========== SESSÃO ==========
+  sessionAffinity: None            # Sem "sticky sessions" (melhor para scale)
+
+  # ========== TRAFFIC POLICY ==========
+  internalTrafficPolicy: Cluster   # Rotear para qualquer nó do cluster

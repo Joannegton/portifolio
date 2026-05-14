@@ -1,0 +1,55 @@
+# ============================================================================
+# INGRESS - Expõe a aplicação para a internet com HTTPS
+# ============================================================================
+# Um Ingress roteador HTTP/HTTPS que mapeia domínios para Services
+# Gerencia certificados SSL e balanceamento de requisições da internet
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+
+metadata:
+  name: portfolio-ingress            # Nome único deste Ingress
+  namespace: default                 # Mesmo namespace do deployment
+
+  annotations:                       # Configurações adicionais (específicas do Nginx)
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"  # Qual ClusterIssuer gera SSL
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"    # HTTP → HTTPS (force HTTPS)
+
+spec:
+  # ========== INGRESS CONTROLLER ==========
+  ingressClassName: nginx            # Qual controller processa este Ingress
+                                     # (instalado via helm install nginx-ingress)
+
+  # ========== CERTIFICADO SSL/TLS ==========
+  tls:                               # HTTPS configuration
+  - hosts:                           # Para quais domínios gerar certificado
+    - joannegton.com                 # Domínio principal
+    - www.joannegton.com             # Subdomínio www
+    secretName: portfolio-tls        # Onde armazenar o certificado (Secret do K8s)
+                                     # cert-manager cria automaticamente!
+
+  # ========== ROTEAMENTO HTTP/HTTPS ==========
+  rules:
+  # Primeira regra: joannegton.com
+  - host: joannegton.com             # Domínio a rotear
+    http:
+      paths:
+      - path: /                      # Todas as URLs começando com /
+        pathType: Prefix             # Prefix = /qualquer-coisa também é roteado
+        backend:
+          service:
+            name: portfolio-service  # Qual Service recebe o traffic
+            port:
+              number: 80             # Porta do Service (definida em service.yaml)
+
+  # Segunda regra: www.joannegton.com
+  - host: www.joannegton.com         # Subdomínio
+    http:
+      paths:
+      - path: /                      # Mesma coisa para www
+        pathType: Prefix
+        backend:
+          service:
+            name: portfolio-service
+            port:
+              number: 80

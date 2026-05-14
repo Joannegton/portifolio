@@ -1,0 +1,25 @@
+# ============================================================================
+# KUSTOMIZATION - Organiza e aplica múltiplos manifestos
+# ============================================================================
+# Kustomize permite aplicar todos os YAMLs com um único comando
+# Comando: kubectl apply -k k8s/
+# Isso é mais fácil que fazer kubectl apply -f para cada arquivo
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# ========== RECURSOS A APLICAR ==========
+resources:
+  - deployment.yaml                 # Define como a app roda
+  - service.yaml                    # Expõe a app internamente
+  - configmap.yaml                  # Variáveis de ambiente
+  - ingress.yaml                    # Expõe para internet com HTTPS
+
+# ========== LABELS COMUNS ==========
+commonLabels:                        # Adiciona esses labels a TODOS os recursos
+  app: portfolio                     # Identifica todos como portfolio
+  managed-by: kustomize             # Rastreabilidade
+
+# ========== ANOTAÇÕES COMUNS ==========
+commonAnnotations:                   # Adiciona anotações a TODOS os recursos
+  created-by: portfolio-deployment   # Quem criou (documentação)

@@ -1,0 +1,31 @@
+# ============================================================================
+# SERVICE - Expõe a aplicação dentro do cluster
+# ============================================================================
+# Um Service cria um ponto de acesso estável para os Pods
+# Mesmo que os Pods mudem, o endereço do Service permanece igual
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: portfolio-service           # Nome do serviço (usado como DNS interno)
+  namespace: default                # Mesmo namespace do deployment
+  labels:
+    app: portfolio                  # Identifica este serviço
+
+spec:
+  # ========== TIPO DE SERVICE ==========
+  type: ClusterIP                   # ClusterIP: acesso INTERNO apenas (não da internet)
+                                    # NodePort: expõe em porta do nó (alternativa)
+                                    # LoadBalancer: usa load balancer da cloud (se disponível)
+
+  # ========== SELETOR DE PODS ==========
+  selector:
+    app: portfolio                  # Roteia traffic para TODOS os pods com este label
+
+  # ========== MAPEAMENTO DE PORTAS ==========
+  ports:
+  - name: http                      # Nome da porta (referenciado no Ingress)
+    port: 80                        # PORTA DO SERVICE (outros pods usam: portfolio-service:80)
+    targetPort: 3000                # PORTA DO CONTAINER (a aplicação rodando dentro)
+    protocol: TCP                   # Protocolo usado (TCP ou UDP)

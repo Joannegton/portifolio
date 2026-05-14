@@ -1,0 +1,39 @@
+# ============================================================================
+# CONFIGMAP - Banco de Dados PostgreSQL
+# ============================================================================
+# Configuração para conectar ao PostgreSQL existente
+# Atualize os valores conforme seu banco de dados
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: portfolio-database
+  namespace: portfolio-prod
+  labels:
+    app: portfolio
+    component: database
+    environment: production
+
+data:
+  # PostgreSQL host (dentro do cluster)
+  # Se o postgres está em outro namespace, formato é: postgres-cent.postgres.svc.cluster.local
+  DB_HOST: "postgres-cent.postgres.svc.cluster.local"
+
+  # Porta do PostgreSQL
+  DB_PORT: "5432"
+
+  # Nome do banco de dados
+  DB_NAME: "portfolio"
+
+  # Usuário do banco (NÃO coloque senha aqui - use Secret!)
+  DB_USER: "portfolio"
+
+  # Pool de conexões
+  DB_POOL_MIN: "2"
+  DB_POOL_MAX: "10"
+
+  # Logging
+  DB_LOG_LEVEL: "info"
+
+  # URL de conexão (template, a senha vem de Secret)
+  # Uso no código: postgresql://user:password@host:5432/database?pool=true

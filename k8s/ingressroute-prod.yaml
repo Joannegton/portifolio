@@ -1,0 +1,127 @@
+# ============================================================================
+# INGRESSROUTE + MIDDLEWARES - Traefik (Produção)
+# ============================================================================
+# Roteamento HTTPS com certificado automático e security headers
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: portfolio-ingress
+  namespace: portfolio-prod
+  labels:
+    app: portfolio
+    environment: production
+  annotations:
+    description: "IngressRoute para Portfolio App com SSL automático"
+
+spec:
+  # ========== ENTRYPOINTS ==========
+  entryPoints:
+  - web              # HTTP (porta 80)
+  - websecure        # HTTPS (porta 443)
+
+  # ========== ROTEAMENTO ==========
+  routes:
+  # Rota para joannegton.com e www.joannegton.com
+  - match: Host(`joannegton.com`) || Host(`www.joannegton.com`)
+    kind: Rule
+    services:
+    - name: portfolio-app
+      port: 80
+
+    # Middlewares aplicados
+    middlewares:
+    - name: redirect-www      # Redirecionar www para non-www
+    - name: redirect-https    # Redirecionar HTTP para HTTPS
+    - name: security-headers  # Adicionar security headers
+
+  # ========== CERTIFICADO SSL ==========
+  # No RKE2, Traefik é gerenciado pelo Rancher
+  # Certificados são gerenciados via cert-manager (já instalado)
+  tls:
+    certResolver: letsencrypt    # Usar Let's Encrypt via cert-manager
+    domains:
+    - main: joannegton.com
+      sans:
+      - www.joannegton.com
+
+    # Armazenar certificado em Secret
+    secretName: portfolio-tls
+
+    # Configuração TLS segura
+    options:
+      name: default
+
+---
+# ========== MIDDLEWARE: Redirecionar WWW para Non-WWW ==========
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: redirect-www
+  namespace: portfolio-prod
+spec:
+  redirectRegex:
+    regex: "^https?://www\\.joannegton\\.com/(.*)"
+    replacement: "https://joannegton.com/$1"
+    permanent: true              # 301 redirect (permanente)
+
+---
+# ========== MIDDLEWARE: Redirecionar HTTP para HTTPS ==========
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: redirect-https
+  namespace: portfolio-prod
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true              # 301 redirect
+
+---
+# ========== MIDDLEWARE: Security Headers ==========
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: security-headers
+  namespace: portfolio-prod
+spec:
+  headers:
+    # ========== Response Headers (enviados ao cliente) ==========
+    customResponseHeaders:
+      # Previnir MIME type sniffing
+      X-Content-Type-Options: "nosniff"
+
+      # Previnir clickjacking (abrir em iframe)
+      X-Frame-Options: "SAMEORIGIN"
+
+      # Previnir XSS (no navegador, é o antigo)
+      X-XSS-Protection: "1; mode=block"
+
+      # Controlar referrer
+      Referrer-Policy: "strict-origin-when-cross-origin"
+
+      # Permissions Policy (antiga Feature Policy)
+      Permissions-Policy: "geolocation=(), microphone=(), camera=()"
+
+      # Suporte a HTTPS
+      Strict-Transport-Security: "max-age=63072000; includeSubDomains"
+
+    # ========== Request Headers (enviados ao backend) ==========
+    customRequestHeaders:
+      X-Forwarded-Proto: "https"
+
+---
+# ========== TLSOPTION (Configuração TLS) ==========
+apiVersion: traefik.io/v1alpha1
+kind: TLSOption
+metadata:
+  name: default
+  namespace: portfolio-prod
+spec:
+  minVersion: VersionTLS12           # Mínimo TLS 1.2
+  cipherSuites:                      # Ciphers modernos
+  - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+  - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+  - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+  sniStrict: true                    # Requer SNI válido
