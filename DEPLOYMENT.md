@@ -9,16 +9,20 @@
 ## Arquitetura
 
 ```
-Internet (https://joannegton.com)
+Usuário (HTTPS)
     ↓
-Traefik (kube-system)
+Cloudflare Edge (TLS termination + CDN)
     ↓
-IngressRoute + SSL (cert-manager + Let's Encrypt)
+Cloudflare Tunnel (cloudflared no servidor)
+    ↓
+Traefik (kube-system) via HTTP interno
     ↓
 Service portfolio-app (port 80 → 3000)
     ↓
 Pod 1, Pod 2, Pod 3 (joannegton/portfolio:v1.0.0)
 ```
+
+**SSL:** Gerenciado pelo Cloudflare — sem cert-manager, sem Let's Encrypt no cluster.
 
 ---
 
@@ -31,9 +35,7 @@ k8s/
 ├── configmap.yaml            ← variáveis de ambiente (NODE_ENV, PORT)
 ├── deployment-prod.yaml      ← deployment + PDB
 ├── service-prod.yaml         ← service ClusterIP
-├── ingressroute-prod.yaml    ← Traefik IngressRoute + middlewares TLS
-├── certificate.yaml          ← Certificate cert-manager (gera secret portfolio-tls)
-├── cert-issuer.yaml          ← ClusterIssuer Let's Encrypt (aplicar 1x, cluster-scoped)
+├── ingressroute-prod.yaml    ← Traefik IngressRoute + security headers
 └── _old/                     ← arquivos antigos (não usar)
 ```
 
@@ -42,8 +44,11 @@ k8s/
 ## Pré-requisitos
 
 ```bash
-kubectl get pods -n kube-system | grep traefik    # deve estar RUNNING
-kubectl get pods -n cert-manager                  # deve estar RUNNING
+# Traefik rodando
+kubectl get pods -n kube-system | grep traefik
+
+# Cloudflare Tunnel ativo no servidor
+sudo systemctl status cloudflared
 ```
 
 ---
@@ -56,13 +61,10 @@ docker pull joannegton/portfolio:latest
 docker tag joannegton/portfolio:latest joannegton/portfolio:v1.0.0
 docker push joannegton/portfolio:v1.0.0
 
-# 2. Aplicar ClusterIssuer (só na primeira vez — recurso de cluster, fora do kustomize)
-kubectl apply -f k8s/cert-issuer.yaml
-
-# 3. Deploy da aplicação
+# 2. Deploy da aplicação
 kubectl apply -k k8s/
 
-# 4. Acompanhar
+# 3. Acompanhar
 kubectl rollout status deployment/portfolio-app -n portfolio-prod
 kubectl get pods -n portfolio-prod
 ```
@@ -75,14 +77,13 @@ kubectl get pods -n portfolio-prod
 # Pods
 kubectl get pods -n portfolio-prod
 
-# Certificado SSL — cert-manager emite via Let's Encrypt (pode demorar 1-2 min)
-kubectl get certificate -n portfolio-prod
-kubectl describe certificate portfolio-tls -n portfolio-prod
-
-# Logs
+# Logs da aplicação
 kubectl logs -f deployment/portfolio-app -n portfolio-prod
 
-# Testar acesso
+# Testar roteamento interno (da VM)
+curl -v -H "Host: joannegton.com" http://192.168.1.150:80
+
+# Testar acesso público
 curl -v https://joannegton.com
 ```
 
@@ -95,12 +96,35 @@ curl -v https://joannegton.com
 docker build -t joannegton/portfolio:v1.1.0 .
 docker push joannegton/portfolio:v1.1.0
 
-# 2. Atualizar tag no kustomization.yaml (campo newTag)
+# 2. Atualizar newTag no k8s/kustomization.yaml
 # 3. Aplicar
 kubectl apply -k k8s/
 
 # Rollback se necessário
 kubectl rollout undo deployment/portfolio-app -n portfolio-prod
+```
+
+---
+
+## Cloudflare Tunnel
+
+O tunnel é instalado como serviço systemd no servidor e inicia automaticamente.
+
+```bash
+# Status
+sudo systemctl status cloudflared
+
+# Reiniciar se necessário
+sudo systemctl restart cloudflared
+
+# Logs
+sudo journalctl -u cloudflared -f
+```
+
+**Roteamento configurado no Cloudflare Dashboard:**
+```
+joannegton.com     → http://192.168.1.150:80
+www.joannegton.com → http://192.168.1.150:80
 ```
 
 ---
@@ -113,23 +137,23 @@ kubectl describe pod <pod-name> -n portfolio-prod
 kubectl logs <pod-name> -n portfolio-prod
 ```
 
-### Certificado SSL não emite
+### Site retorna 404
 ```bash
-# Ver status do Certificate
-kubectl describe certificate portfolio-tls -n portfolio-prod
+# Verificar se Traefik está roteando
+curl -v -H "Host: joannegton.com" http://192.168.1.150:80
 
-# Ver logs do cert-manager
-kubectl logs -f -n cert-manager deployment/cert-manager
+# Ver logs do Traefik
+kubectl logs -f -n kube-system deployment/traefik | grep -i "portfolio\|error"
 
-# Ver CertificateRequest e Order (processo interno do cert-manager)
-kubectl get certificaterequest -n portfolio-prod
-kubectl get order -n portfolio-prod
+# Ver IngressRoute
+kubectl describe ingressroute portfolio-ingress -n portfolio-prod
 ```
 
-### Traefik não roteia
+### Cloudflare Tunnel desconectado
 ```bash
-kubectl describe ingressroute portfolio-ingress -n portfolio-prod
-kubectl logs -f -n kube-system deployment/traefik
+sudo systemctl status cloudflared
+sudo journalctl -u cloudflared --since "10 min ago"
+sudo systemctl restart cloudflared
 ```
 
 ### Deletar tudo
@@ -142,7 +166,6 @@ kubectl delete namespace portfolio-prod
 ## Checklist pré-deploy
 
 - [ ] Traefik rodando (`kubectl get pods -n kube-system | grep traefik`)
-- [ ] cert-manager rodando (`kubectl get pods -n cert-manager`)
+- [ ] Cloudflare Tunnel ativo (`sudo systemctl status cloudflared`)
 - [ ] Imagem publicada no Docker Hub com tag versionada
-- [ ] DNS de `joannegton.com` apontado para IP do Traefik
 - [ ] Dry-run sem erros (`kubectl apply -k k8s/ --dry-run=client`)

@@ -9,7 +9,6 @@ resources:
   - deployment-prod.yaml
   - service-prod.yaml
   - ingressroute-prod.yaml
-  - certificate.yaml
 
 labels:
 - pairs:
