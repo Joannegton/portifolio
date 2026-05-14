@@ -17,6 +17,7 @@ labels:
     environment: production
     managed-by: kustomize
     version: v1
+  includeSelectors: false
 
 commonAnnotations:
   created-by: portfolio-devops
