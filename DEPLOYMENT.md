@@ -32,7 +32,8 @@ k8s/
 ├── deployment-prod.yaml      ← deployment + PDB
 ├── service-prod.yaml         ← service ClusterIP
 ├── ingressroute-prod.yaml    ← Traefik IngressRoute + middlewares TLS
-├── cert-issuer.yaml          ← ClusterIssuer Let's Encrypt (aplicar 1x)
+├── certificate.yaml          ← Certificate cert-manager (gera secret portfolio-tls)
+├── cert-issuer.yaml          ← ClusterIssuer Let's Encrypt (aplicar 1x, cluster-scoped)
 └── _old/                     ← arquivos antigos (não usar)
 ```
 
@@ -55,7 +56,7 @@ docker pull joannegton/portfolio:latest
 docker tag joannegton/portfolio:latest joannegton/portfolio:v1.0.0
 docker push joannegton/portfolio:v1.0.0
 
-# 2. Aplicar ClusterIssuer (só na primeira vez, recurso de cluster)
+# 2. Aplicar ClusterIssuer (só na primeira vez — recurso de cluster, fora do kustomize)
 kubectl apply -f k8s/cert-issuer.yaml
 
 # 3. Deploy da aplicação
@@ -74,8 +75,9 @@ kubectl get pods -n portfolio-prod
 # Pods
 kubectl get pods -n portfolio-prod
 
-# Certificado SSL (pode demorar 1-2 min)
+# Certificado SSL — cert-manager emite via Let's Encrypt (pode demorar 1-2 min)
 kubectl get certificate -n portfolio-prod
+kubectl describe certificate portfolio-tls -n portfolio-prod
 
 # Logs
 kubectl logs -f deployment/portfolio-app -n portfolio-prod
@@ -113,8 +115,15 @@ kubectl logs <pod-name> -n portfolio-prod
 
 ### Certificado SSL não emite
 ```bash
-kubectl logs -f -n cert-manager deployment/cert-manager
+# Ver status do Certificate
 kubectl describe certificate portfolio-tls -n portfolio-prod
+
+# Ver logs do cert-manager
+kubectl logs -f -n cert-manager deployment/cert-manager
+
+# Ver CertificateRequest e Order (processo interno do cert-manager)
+kubectl get certificaterequest -n portfolio-prod
+kubectl get order -n portfolio-prod
 ```
 
 ### Traefik não roteia

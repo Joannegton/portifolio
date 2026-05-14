@@ -37,19 +37,10 @@ spec:
     - name: security-headers  # Adicionar security headers
 
   # ========== CERTIFICADO SSL ==========
-  # No RKE2, Traefik é gerenciado pelo Rancher
-  # Certificados são gerenciados via cert-manager (já instalado)
+  # Certificado gerenciado pelo cert-manager (certificate.yaml)
+  # O secret "portfolio-tls" é criado automaticamente pelo cert-manager
   tls:
-    certResolver: letsencrypt    # Usar Let's Encrypt via cert-manager
-    domains:
-    - main: joannegton.com
-      sans:
-      - www.joannegton.com
-
-    # Armazenar certificado em Secret
     secretName: portfolio-tls
-
-    # Configuração TLS segura
     options:
       name: default
 
