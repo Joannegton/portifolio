@@ -22,10 +22,6 @@ commonAnnotations:
   created-by: portfolio-devops
   managed-version: "1.0"
 
-images:
-- name: joannegton/portfolio
-  newName: joannegton/portfolio
-  newTag: v1.0.0
 
 replicas:
 - name: portfolio-app

@@ -1,14 +1,22 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ExternalLink, Github, Globe, Smartphone, Server, Brain, Layers } from "lucide-react"
+import { ExternalLink, Github, Globe, Smartphone, Server, Brain, Layers, ArrowUpDown, CalendarArrowDown, CalendarArrowUp, ArrowDownAZ } from "lucide-react"
 import Image from "next/image"
 import { Projeto, projetos } from "../minhasInfos"
+
+type OrdemTipo = "recentes" | "antigos" | "az"
+
+const opcoesOrdem: { id: OrdemTipo; rotulo: string; icone: React.ElementType }[] = [
+  { id: "recentes", rotulo: "Mais recentes", icone: CalendarArrowDown },
+  { id: "antigos", rotulo: "Mais antigos", icone: CalendarArrowUp },
+  { id: "az", rotulo: "A–Z", icone: ArrowDownAZ },
+]
 
 const categorias = [
   { id: "todos", rotulo: "Todos os Projetos", icone: Layers },
@@ -18,50 +26,60 @@ const categorias = [
   { id: "ai", rotulo: "Inteligência Artificial", icone: Brain },
 ]
 
+const parseData = (dataString: string) => {
+  const [mes, ano] = dataString.split('/').map(Number)
+  return new Date(ano, mes - 1)
+}
+
+const ordenarProjetos = (lista: Projeto[], ordem: OrdemTipo): Projeto[] => {
+  return lista.toSorted((a, b) => {
+    if (ordem === "recentes") return parseData(b.data).getTime() - parseData(a.data).getTime()
+    if (ordem === "antigos") return parseData(a.data).getTime() - parseData(b.data).getTime()
+    return a.titulo.localeCompare(b.titulo, "pt-BR")
+  })
+}
+
 export default function Projetos() {
   const [categoriaAtiva, setCategoriaAtiva] = useState("todos")
+  const [ordem, setOrdem] = useState<OrdemTipo>("recentes")
   const [projetosPorCategoria, setProjetosPorCategoria] = useState<Projeto[]>([])
 
   useEffect(() => {
-    obterProjetosPorCategoria("todos")
+    aplicarFiltros("todos", "recentes")
   }, []);
-  
-  const obterProjetosPorCategoria = (categoria: string) => {
-    let projetosFiltrados;
-    
+
+  const aplicarFiltros = (categoria: string, ordemAtual: OrdemTipo) => {
+    let projetosFiltrados: Projeto[];
+
     switch (categoria) {
       case "web":
-        projetosFiltrados = projetos.filter((projeto) => projeto.categorias.includes("web"))
+        projetosFiltrados = projetos.filter((p) => p.categorias.includes("web"))
         break
       case "api":
-        projetosFiltrados = projetos.filter((projeto) => projeto.categorias.includes("api"))
+        projetosFiltrados = projetos.filter((p) => p.categorias.includes("api"))
         break
       case "mobile":
-        projetosFiltrados = projetos.filter((projeto) => projeto.categorias.includes("mobile"))
+        projetosFiltrados = projetos.filter((p) => p.categorias.includes("mobile"))
         break
       case "ai":
-        projetosFiltrados = projetos.filter((projeto) => projeto.categorias.includes("ai"))
+        projetosFiltrados = projetos.filter((p) => p.categorias.includes("ai"))
         break
       case "todos":
       default:
         projetosFiltrados = projetos
     }
-    
-    const parseData = (dataString: string) => {
-      const [mes, ano] = dataString.split('/').map(Number)
-      return new Date(ano, mes - 1)
-    }
-    
-    const projetosOrdenados = projetosFiltrados.toSorted((a, b) => 
-      parseData(b.data).getTime() - parseData(a.data).getTime()
-    )
-    
-    setProjetosPorCategoria(projetosOrdenados)
+
+    setProjetosPorCategoria(ordenarProjetos(projetosFiltrados, ordemAtual))
   }
 
   const handleCategoriaChange = (value: string) => {
     setCategoriaAtiva(value)
-    obterProjetosPorCategoria(value)
+    aplicarFiltros(value, ordem)
+  }
+
+  const handleOrdemChange = (novaOrdem: OrdemTipo) => {
+    setOrdem(novaOrdem)
+    aplicarFiltros(categoriaAtiva, novaOrdem)
   }
 
   return (
@@ -78,6 +96,35 @@ export default function Projetos() {
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
             Uma seleção cuidadosa dos projetos que desenvolvi, organizados por categoria e tecnologia utilizada.
           </p>
+        </motion.div>
+
+        {/* Ordenação */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex items-center justify-end gap-2 mb-6"
+        >
+          <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground mr-1">Ordenar:</span>
+          {opcoesOrdem.map((opcao) => {
+            const Icone = opcao.icone
+            const ativo = ordem === opcao.id
+            return (
+              <button
+                key={opcao.id}
+                onClick={() => handleOrdemChange(opcao.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200 cursor-pointer
+                  ${ativo
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-transparent text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
+                  }`}
+              >
+                <Icone className="h-3.5 w-3.5" />
+                {opcao.rotulo}
+              </button>
+            )
+          })}
         </motion.div>
 
         {/* Categorias */}
@@ -102,9 +149,11 @@ export default function Projetos() {
                 {projetosPorCategoria.map((projeto, index) => (
                   <motion.div
                     key={projeto.titulo}
+                    layout
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.35, delay: index * 0.05 }}
                   >
                     <Card className="h-full hover:shadow-lg transition-shadow group">
                       <div className="relative overflow-hidden rounded-t-lg">

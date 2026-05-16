@@ -61,8 +61,8 @@ spec:
       # ========== CONTAINERS ==========
       containers:
         - name: app
-          image: joannegton/portfolio:v1.0.0
-          imagePullPolicy: IfNotPresent
+          image: joannegton/portfolio:latest
+          imagePullPolicy: Always
 
           # ========== PORTS ==========
           ports:
