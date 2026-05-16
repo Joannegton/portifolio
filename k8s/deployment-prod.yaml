@@ -24,10 +24,10 @@ spec:
 
   # ========== ESTRATÉGIA DE ATUALIZAÇÃO ==========
   strategy:
-    type: RollingUpdate # Atualizar gradualmente (sem downtime)
+    type: RollingUpdate
     rollingUpdate:
-      maxSurge: 1 # Máximo 1 pod extra durante update
-      maxUnavailable: 0 # Nunca deixar todos indisponíveis
+      maxSurge: 0 # Não criar pod extra (quota apertada com 1 replica)
+      maxUnavailable: 1 # Mata o antigo antes de criar o novo
 
   # ========== SELETOR ==========
   selector:
