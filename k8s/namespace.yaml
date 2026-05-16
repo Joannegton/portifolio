@@ -96,7 +96,7 @@ spec:
     limits.memory: "600Mi"         # Total máximo de memória limits
 
     # Contagem de recursos
-    pods: "3"                      # Máximo de pods
+    pods: "5"                      # Máximo de pods (app + postgres + spare)
     services: "2"                  # Máximo de services
     replicationcontrollers: "2"    # Máximo de replication controllers
     resourcequotas: "1"            # Máximo de resource quotas

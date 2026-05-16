@@ -6,6 +6,7 @@ namespace: portfolio-prod
 resources:
   - namespace.yaml
   - configmap.yaml
+  - postgres.yaml
   - deployment-prod.yaml
   - service-prod.yaml
   - ingressroute-prod.yaml

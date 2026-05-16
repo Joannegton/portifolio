@@ -15,7 +15,8 @@ metadata:
     app: portfolio                   # Identificação
 
 # ========== DADOS DE CONFIGURAÇÃO ==========
-data:                                # Key-value pairs injetadas como env vars
-  NODE_ENV: "production"             # Ambiente da aplicação (production/development)
-  NEXT_TELEMETRY_DISABLED: "1"       # Desabilita telemetria do Next.js (privacidade)
-  PORT: "3000"                       # Porta que a aplicação escuta
+data:
+  NODE_ENV: "production"
+  NEXT_TELEMETRY_DISABLED: "1"
+  PORT: "3000"
+  DB_SSL: "false"
