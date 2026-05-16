@@ -123,6 +123,26 @@ spec:
                 secretKeyRef:
                   name: portfolio-secrets
                   key: RESEND_API_KEY
+            - name: TELEGRAM_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: TELEGRAM_WEBHOOK_SECRET
+            - name: AUTH_SERVICE_ID
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: AUTH_SERVICE_ID
+            - name: TEST_USER_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: TEST_USER_EMAIL
+            - name: TEST_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: TEST_USER_PASSWORD
 
           # ========== RESOURCE LIMITS ==========
           resources:
