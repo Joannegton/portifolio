@@ -21,6 +21,9 @@ COPY public ./public
 
 RUN npm run build
 
+# Verifica que instrumentation.ts foi compilado
+RUN test -f .next/server/instrumentation.js || echo "WARN: instrumentation.js not found"
+
 # ============================================================================
 # RUNTIME
 # ============================================================================

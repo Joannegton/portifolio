@@ -76,18 +76,53 @@ spec:
                 name: portfolio-config # Configuração principal
 
           env:
-            - name: HOSTNAME # Nome do pod
+            - name: HOSTNAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: POD_IP # IP do pod
+            - name: POD_IP
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-            - name: POD_NAMESPACE # Namespace
+            - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: DATABASE_URL
+            - name: AUTH_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: AUTH_PUBLIC_KEY
+            - name: NEXT_PUBLIC_AUTH_SERVICE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: NEXT_PUBLIC_AUTH_SERVICE_URL
+            - name: NEXT_PUBLIC_APP_URL
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: NEXT_PUBLIC_APP_URL
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: TELEGRAM_BOT_TOKEN
+            - name: TELEGRAM_CHAT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: TELEGRAM_CHAT_ID
+            - name: RESEND_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: RESEND_API_KEY
 
           # ========== RESOURCE LIMITS ==========
           resources:

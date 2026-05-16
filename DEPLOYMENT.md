@@ -1,9 +1,9 @@
-# Deploy - Portfolio App (Kubernetes)
+# Deploy — Portfolio App
 
-**App:** Next.js 15 (estático, sem banco de dados)  
+**App:** Next.js 15 (Server Components + Route Handlers + TypeORM)  
 **Cluster:** K3s + Rancher (`bolacha@racher`)  
-**Namespace:** `portfolio-prod`  
-**Réplicas:** 1 (portfólio de baixo tráfego)
+**Namespace principal:** `portfolio-prod`  
+**Namespace de demos:** `demos`
 
 ---
 
@@ -12,125 +12,294 @@
 ```
 Usuário (HTTPS)
     ↓
-Cloudflare Edge (TLS termination + CDN)
+Cloudflare Edge (TLS + CDN)
     ↓
 Cloudflare Tunnel (cloudflared no servidor)
     ↓
-Traefik (kube-system) via HTTP interno
+Traefik (kube-system)
     ↓
-Service portfolio-app (port 80 → 3000)
-    ↓
-Pod (joannegton/portfolio:v1.0.0)
+┌─────────────────────────────────┬────────────────────────────────────┐
+│  namespace: portfolio-prod      │  namespace: demos                  │
+│                                 │                                     │
+│  portfolio-app (Next.js)        │  auth-demo (NestJS)                │
+│       ↓                         │       ↓                            │
+│  portfolio-postgres (Postgres)  │   auth-demo-postgres (Postgres)     │
+│                                 │  auth-demo-reset (CronJob 3h)      │
+└─────────────────────────────────┴────────────────────────────────────┘
 ```
 
-**SSL:** Gerenciado pelo Cloudflare — sem cert-manager, sem Let's Encrypt no cluster.
+**Domínios:**
+- `joannegton.com` → portfolio-app (Next.js)
+- `auth-demo.joannegton.com` → auth-demo (NestJS + Swagger em `/docs`)
+
+**SSL:** gerenciado pelo Cloudflare. Sem cert-manager nem Let's Encrypt no cluster.
 
 ---
 
-## Estrutura dos YAMLs
+## Estrutura k8s — portfolio
 
 ```
-k8s/
-├── kustomization.yaml        ← entry point do deploy
-├── namespace.yaml            ← namespace, RBAC, quotas, network policy
-├── configmap.yaml            ← variáveis de ambiente (NODE_ENV, PORT)
-├── deployment-prod.yaml      ← deployment + PDB
-├── service-prod.yaml         ← service ClusterIP
-├── ingressroute-prod.yaml    ← Traefik IngressRoute + security headers
-└── _old/                     ← arquivos antigos (não usar)
+portifolio/k8s/
+├── kustomization.yaml          ← entry point
+├── namespace.yaml              ← namespace, RBAC, quotas (pods: 5)
+├── configmap.yaml              ← variáveis não-sensíveis
+├── postgres.yaml               ← StatefulSet + PVC 500Mi + Service
+├── deployment-prod.yaml        ← Deployment + PDB
+├── service-prod.yaml           ← Service ClusterIP
+├── ingressroute-prod.yaml      ← Traefik IngressRoute + headers
+└── secret-portfolio-example.yaml ← template (não commitar com valores reais)
+```
+
+## Estrutura k8s — auth demo
+
+```
+auth/k8s/
+├── kustomization.yaml          ← entry point
+├── namespace.yaml              ← namespace demos + quota + NetworkPolicy
+├── configmap-demo.yaml         ← ENABLE_DOCS=true e outras vars
+├── postgres-demo.yaml          ← StatefulSet + PVC 2Gi + Service
+├── deployment-demo.yaml        ← Deployment auth
+├── service-demo.yaml           ← Service ClusterIP
+├── ingressroute-demo.yaml      ← Traefik IngressRoute (auth-demo.joannegton.com)
+├── reset-cronjob.yaml          ← CronJob diário 3h — dropa/recria schema
+└── secret-demo-example.yaml    ← template (não commitar com valores reais)
 ```
 
 ---
 
-## Pré-requisitos
+## Variáveis de ambiente
+
+### ConfigMap `portfolio-config` — valores não-sensíveis (já em k8s/configmap.yaml)
+
+| Var | Valor |
+|---|---|
+| `NODE_ENV` | `production` |
+| `NEXT_TELEMETRY_DISABLED` | `1` |
+| `PORT` | `3000` |
+| `DB_SSL` | `false` |
+
+### Secret `portfolio-secrets` — aplicar manualmente na VPS
+
+| Var | Para quê | Como obter |
+|---|---|---|
+| `POSTGRES_USER` | usuário do banco | você define (ex: `portfolio_user`) |
+| `POSTGRES_PASSWORD` | senha do banco | você define (senha forte) |
+| `DATABASE_URL` | string de conexão TypeORM | `postgresql://<user>:<pass>@portfolio-postgres:5432/portfolio` |
+| `AUTH_PUBLIC_KEY` | valida JWT do auth service (RS256) | endpoint `/auth/public-key` do auth service |
+| `NEXT_PUBLIC_AUTH_SERVICE_URL` | URL do auth para login admin | `https://auth-demo.joannegton.com` |
+| `NEXT_PUBLIC_APP_URL` | URL base para links de aprovação de acesso | `https://joannegton.com` |
+| `TELEGRAM_BOT_TOKEN` | notificação ao dono (nova solicitação de acesso) | [@BotFather](https://t.me/botfather) |
+| `TELEGRAM_CHAT_ID` | seu chat_id pessoal | bot `@userinfobot` ou `getUpdates` da API |
+| `TELEGRAM_WEBHOOK_SECRET` | valida callbacks do Telegram no webhook | string aleatória (ex: `openssl rand -hex 32`) |
+| `AUTH_SERVICE_ID` | UUID do serviço no auth service (para registrar novos usuários) | endpoint `GET /services` do auth service |
+| `TEST_USER_EMAIL` | email do usuário de teste pré-configurado | você define |
+| `TEST_USER_PASSWORD` | senha do usuário de teste pré-configurado | você define |
+| `RESEND_API_KEY` | enviar emails ao solicitante | dashboard resend.com |
+
+---
+
+## Telegram Webhook (botões de ação nas notificações)
+
+Quando uma solicitação de acesso chega, o bot envia uma mensagem com 2 botões inline:
+- **👤 Criar usuário** — cria conta no auth service com o email do solicitante + senha forte aleatória e envia as credenciais por email
+- **🔑 Mandar usuário existente** — envia por email as credenciais do `TEST_USER_EMAIL/PASSWORD`
+
+O handler está em `/api/telegram/webhook`. O Telegram precisa de uma URL pública para entregar os callbacks.
+
+### Registrar o webhook (fazer após cada deploy ou troca de domínio)
+
+```bash
+curl -s -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://joannegton.com/api/telegram/webhook",
+    "secret_token": "<TELEGRAM_WEBHOOK_SECRET>"
+  }'
+```
+
+Resposta esperada: `{"ok":true,"result":true,"description":"Webhook was set"}`
+
+### Verificar webhook ativo
+
+```bash
+curl -s "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/getWebhookInfo" | python3 -m json.tool
+```
+
+### Desenvolvimento local (ngrok)
+
+O Telegram não consegue entregar callbacks para `localhost`. Use ngrok para expor a porta 3000:
+
+```bash
+ngrok http 3000
+```
+
+Então registre o webhook com a URL do ngrok:
+
+```bash
+curl -s -X POST "https://api.telegram.org/bot<TOKEN>/setWebhook" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://<id>.ngrok-free.app/api/telegram/webhook"}'
+```
+
+> Sem `secret_token` em dev (deixar `TELEGRAM_WEBHOOK_SECRET` vazio no `.env.local`).
+
+---
+
+## Primeiro deploy
+
+### Pré-requisitos
 
 ```bash
 # Traefik rodando
 kubectl get pods -n kube-system | grep traefik
 
-# Cloudflare Tunnel ativo no servidor
+# Cloudflare Tunnel ativo
 sudo systemctl status cloudflared
+```
+
+### 1. Criar o secret — portfolio-prod
+
+Substituir os valores e rodar na VPS (fazer apenas uma vez):
+
+```bash
+kubectl create secret generic portfolio-secrets -n portfolio-prod \
+  --from-literal=POSTGRES_USER=portfolio_user \
+  --from-literal=POSTGRES_PASSWORD=<senha-forte> \
+  --from-literal=DATABASE_URL="postgresql://portfolio_user:<senha>@portfolio-postgres:5432/portfolio" \
+  --from-literal=AUTH_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApsjkbgwzC+vqQJ6cWtor
+O3fwYZJdQUI5jDIiev5Rf8ZUG08GSakz7xekGdNNYy5DXT77FFYVEbeNJIVVfaMy
+xGNf3CwK4gjoXQlvPkGnNEXblWCHfAG/n2ovhU8BX1z76RJWOGktfcAaYhv4ZVqZ
+/AR6yEOxI9Ox+H71iG0FSddtKAnjbqW0D6S0zZ1fIpuciyvhE0nMPiGeliL7kepM
+l6VeuWzQSg15+Pjuxy2ncf9vf/BDLi1EyeEWFfPHEu86PUljD2YuOlQjqjp35MEX
+PUHOzjHT9XaN8sASSCuAz/R01uuOvck5h5xj5Q4MVK5uMk6oiqLGfvc7xNYNPuG2
+MwIDAQAB
+-----END PUBLIC KEY-----" \
+  --from-literal=NEXT_PUBLIC_AUTH_SERVICE_URL=https://auth-demo.joannegton.com \
+  --from-literal=NEXT_PUBLIC_APP_URL=https://joannegton.com \
+  --from-literal=TELEGRAM_BOT_TOKEN=<token-do-bot> \
+  --from-literal=TELEGRAM_CHAT_ID=<seu-chat-id> \
+  --from-literal=TELEGRAM_WEBHOOK_SECRET=<string-aleatoria> \
+  --from-literal=AUTH_SERVICE_ID=<uuid-do-servico> \
+  --from-literal=TEST_USER_EMAIL=<email-usuario-teste> \
+  --from-literal=TEST_USER_PASSWORD=<senha-usuario-teste> \
+  --from-literal=RESEND_API_KEY=<chave-resend>
+```
+
+> O secret persiste no cluster. Não precisa recriar a cada deploy.
+
+### 2. Aplicar os manifests — portfolio
+
+```bash
+kubectl apply -k portifolio/k8s/
+```
+
+Isso cria em ordem: namespace → postgres StatefulSet → configmap → deployment → service → ingressroute.
+
+### 3. Acompanhar o startup
+
+```bash
+# Aguardar pods subirem
+kubectl get pods -n portfolio-prod -w
+
+# Ver migrations rodando via instrumentation.ts
+kubectl logs -f deployment/portfolio-app -n portfolio-prod | grep -i "migrat\|error\|typeorm"
+```
+
+As migrations e o seed dos projetos rodam automaticamente no startup.
+
+### 4. Criar o secret — demos (auth-demo)
+
+```bash
+kubectl create secret generic auth-demo-secrets -n demos \
+  --from-literal=POSTGRES_USER=auth_demo \
+  --from-literal=POSTGRES_PASSWORD=<senha-forte> \
+  --from-literal=JWT_PRIVATE_KEY="$(cat /path/to/private.pem)" \
+  --from-literal=JWT_PUBLIC_KEY="$(cat /path/to/public.pem)"
+```
+
+### 5. Aplicar os manifests — auth demo
+
+```bash
+kubectl apply -k auth/k8s/
+
+kubectl rollout status deployment/auth-demo -n demos
+kubectl get pods -n demos
 ```
 
 ---
 
-## Deploy (primeira vez)
+## Deploy automático (CI/CD)
 
-```bash
-# 1. Taguear imagem no Docker Hub
-docker pull joannegton/portfolio:latest
-docker tag joannegton/portfolio:latest joannegton/portfolio:v1.0.0
-docker push joannegton/portfolio:v1.0.0
+### Portfolio
 
-# 2. Deploy da aplicação
-kubectl apply -k k8s/
+Workflow: `portifolio/.github/workflows/deploy.yml`
 
-# 3. Acompanhar
-kubectl rollout status deployment/portfolio-app -n portfolio-prod
-kubectl get pods -n portfolio-prod
-```
+Trigger: push em `master` com mudanças em `portifolio/**`
+
+1. Build da imagem `joannegton/portfolio:latest`
+2. Push para Docker Hub
+3. `kubectl rollout restart deployment/portfolio-app -n portfolio-prod`
+
+### Auth Demo
+
+Workflow: `auth/.github/workflows/deploy-demo.yml`
+
+Trigger: push em `master` com mudanças em `auth/**`
+
+1. Build da imagem `joannegton/auth:latest`
+2. Push para Docker Hub
+3. `kubectl rollout restart deployment/auth-demo -n demos`
 
 ---
 
 ## Verificar após deploy
 
 ```bash
-# Pods
+# Pods rodando
 kubectl get pods -n portfolio-prod
+kubectl get pods -n demos
 
-# Logs da aplicação
+# API portfolio retornando projetos
+curl https://joannegton.com/api/projects
+
+# Swagger auth-demo acessível
+curl -I https://auth-demo.joannegton.com/docs
+
+# Logs portfolio
 kubectl logs -f deployment/portfolio-app -n portfolio-prod
 
-# Testar roteamento interno (da VM)
-curl -v -H "Host: joannegton.com" http://192.168.1.150:80
-
-# Testar acesso público
-curl -v https://joannegton.com
+# Logs auth-demo
+kubectl logs -f deployment/auth-demo -n demos
 ```
 
 ---
 
-## Atualizar versão
+## Rollback
 
 ```bash
-# 1. Build e push da nova imagem
-docker build -t joannegton/portfolio:v1.1.0 .
-docker push joannegton/portfolio:v1.1.0
-
-# 2. Atualizar newTag no k8s/kustomization.yaml:
-#    newTag: v1.1.0
-
-# 3. Aplicar
-kubectl apply -k k8s/
-
-# Acompanhar o rollout
-kubectl rollout status deployment/portfolio-app -n portfolio-prod
-
-# Rollback se necessário
+# Portfolio
 kubectl rollout undo deployment/portfolio-app -n portfolio-prod
+
+# Auth demo
+kubectl rollout undo deployment/auth-demo -n demos
 ```
 
 ---
 
 ## Cloudflare Tunnel
 
-O tunnel é instalado como serviço systemd no servidor e inicia automaticamente.
-
 ```bash
-# Status
 sudo systemctl status cloudflared
-
-# Reiniciar se necessário
 sudo systemctl restart cloudflared
-
-# Logs
 sudo journalctl -u cloudflared -f
 ```
 
-**Roteamento configurado no Cloudflare Dashboard:**
+**Roteamento no Cloudflare Dashboard:**
 ```
-joannegton.com     → http://192.168.1.150:80
-www.joannegton.com → http://192.168.1.150:80
+joannegton.com               → http://192.168.1.150:80
+www.joannegton.com           → http://192.168.1.150:80
+auth-demo.joannegton.com     → http://192.168.1.150:80
 ```
 
 ---
@@ -138,33 +307,50 @@ www.joannegton.com → http://192.168.1.150:80
 ## Troubleshooting
 
 ### Pod não inicia
+
 ```bash
 kubectl describe pod <pod-name> -n portfolio-prod
-kubectl logs <pod-name> -n portfolio-prod
+kubectl logs <pod-name> -n portfolio-prod --previous
 ```
 
-### Site retorna 404
+### Erro de banco / migrations
+
 ```bash
-# Verificar se Traefik está roteando
-curl -v -H "Host: joannegton.com" http://192.168.1.150:80
+kubectl logs -f deployment/portfolio-app -n portfolio-prod | grep -i "migrat\|error\|typeorm"
 
-# Ver logs do Traefik
-kubectl logs -f -n kube-system deployment/traefik | grep -i "portfolio\|error"
-
-# Ver IngressRoute
-kubectl describe ingressroute portfolio-ingress -n portfolio-prod
+# Inspecionar banco direto
+kubectl exec -it statefulset/portfolio-postgres -n portfolio-prod -- psql -U portfolio_user -d portfolio -c "\dt"
 ```
 
-### Cloudflare Tunnel desconectado
+### Erro de variável de ambiente ausente
+
 ```bash
-sudo systemctl status cloudflared
-sudo journalctl -u cloudflared --since "10 min ago"
-sudo systemctl restart cloudflared
+# Listar chaves do secret (sem mostrar valores)
+kubectl get secret portfolio-secrets -n portfolio-prod -o jsonpath='{.data}' | python3 -c "import sys,json; [print(k) for k in json.load(sys.stdin)]"
+
+# Ver env vars do pod em execução
+kubectl exec -it deployment/portfolio-app -n portfolio-prod -- env | grep -E "DATABASE|AUTH|TELEGRAM|RESEND|APP_URL|TEST_USER"
+```
+
+### Swagger não aparece em auth-demo
+
+```bash
+kubectl get configmap auth-demo-config -n demos -o yaml | grep ENABLE_DOCS
+kubectl logs -f deployment/auth-demo -n demos | grep -i "swagger\|docs\|error"
+```
+
+### Reset manual do banco demo
+
+```bash
+kubectl create job --from=cronjob/auth-demo-reset manual-reset-$(date +%s) -n demos
+kubectl logs -f job/manual-reset-<suffix> -n demos
 ```
 
 ### Deletar tudo
+
 ```bash
 kubectl delete namespace portfolio-prod
+kubectl delete namespace demos
 ```
 
 ---
@@ -173,5 +359,9 @@ kubectl delete namespace portfolio-prod
 
 - [ ] Traefik rodando (`kubectl get pods -n kube-system | grep traefik`)
 - [ ] Cloudflare Tunnel ativo (`sudo systemctl status cloudflared`)
-- [ ] Imagem publicada no Docker Hub com tag versionada
-- [ ] Dry-run sem erros (`kubectl apply -k k8s/ --dry-run=client`)
+- [ ] Secret `portfolio-secrets` aplicado (`kubectl get secret portfolio-secrets -n portfolio-prod`)
+- [ ] Secret `auth-demo-secrets` aplicado (`kubectl get secret auth-demo-secrets -n demos`)
+- [ ] Imagem portfolio no Docker Hub (`docker pull joannegton/portfolio:latest`)
+- [ ] Imagem auth no Docker Hub (`docker pull joannegton/auth:latest`)
+- [ ] Dry-run sem erros (`kubectl apply -k portifolio/k8s/ --dry-run=client`)
+- [ ] Webhook do Telegram registrado (`/setWebhook` com URL de produção + `secret_token`)

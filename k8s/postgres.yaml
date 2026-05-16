@@ -1,0 +1,92 @@
+# ============================================================================
+# POSTGRES - StatefulSet + PVC + Service para portfolio-prod
+# ============================================================================
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: portfolio-prod
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 500Mi
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: portfolio-postgres
+  namespace: portfolio-prod
+spec:
+  serviceName: portfolio-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: portfolio-postgres
+  template:
+    metadata:
+      labels:
+        app: portfolio-postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: portfolio
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            exec:
+              command: [pg_isready, -U, postgres, -d, portfolio]
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          readinessProbe:
+            exec:
+              command: [pg_isready, -U, postgres, -d, portfolio]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: portfolio-postgres
+  namespace: portfolio-prod
+spec:
+  selector:
+    app: portfolio-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+  clusterIP: None
