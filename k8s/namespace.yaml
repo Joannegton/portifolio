@@ -170,12 +170,9 @@ spec:
         - protocol: TCP
           port: 80
 
-    # Comunicação interna entre pods
+    # Comunicação interna entre pods (sem restrição de porta — inclui postgres:5432)
     - to:
         - podSelector: {}
-      ports:
-        - protocol: TCP
-          port: 3000
 
 ---
 # ========== LIMIT RANGE ==========
