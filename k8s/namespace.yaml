@@ -90,10 +90,10 @@ metadata:
 spec:
   hard:
     # CPU e Memory
-    requests.cpu: "300m"           # Total máximo de CPU requests
-    requests.memory: "300Mi"       # Total máximo de memória requests
-    limits.cpu: "600m"             # Total máximo de CPU limits
-    limits.memory: "600Mi"         # Total máximo de memória limits
+    requests.cpu: "500m"           # Total máximo de CPU requests
+    requests.memory: "500Mi"       # Total máximo de memória requests
+    limits.cpu: "1200m"            # Total máximo de CPU limits
+    limits.memory: "1200Mi"        # Total máximo de memória limits
 
     # Contagem de recursos
     pods: "5"                      # Máximo de pods (app + postgres + spare)
