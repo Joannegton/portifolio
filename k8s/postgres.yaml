@@ -64,12 +64,12 @@ spec:
               memory: 512Mi
           livenessProbe:
             exec:
-              command: [pg_isready, -U, postgres, -d, portfolio]
+              command: [pg_isready, -U, portfolio_app, -d, portfolio]
             initialDelaySeconds: 15
             periodSeconds: 10
           readinessProbe:
             exec:
-              command: [pg_isready, -U, postgres, -d, portfolio]
+              command: [pg_isready, -U, portfolio_app, -d, portfolio]
             initialDelaySeconds: 5
             periodSeconds: 5
       volumes:
