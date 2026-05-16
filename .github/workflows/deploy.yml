@@ -1,0 +1,36 @@
+name: Deploy Portfolio
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set image tag
+        id: tag
+        run: echo "TAG=v$(date +%Y%m%d%H%M%S)-$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Build & push image
+        run: |
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+          docker build -t joannegton/portfolio:${{ steps.tag.outputs.TAG }} .
+          docker push joannegton/portfolio:${{ steps.tag.outputs.TAG }}
+
+      - name: Update image tag in kustomization
+        run: |
+          sed -i "s/newTag: .*/newTag: ${{ steps.tag.outputs.TAG }}/" k8s/kustomization.yaml
+
+      - name: Deploy
+        run: |
+          kubectl apply -k k8s/
+          kubectl rollout status deployment/portfolio-app -n portfolio-prod --timeout=120s
+
+      - name: Verify
+        run: kubectl get pods -n portfolio-prod
