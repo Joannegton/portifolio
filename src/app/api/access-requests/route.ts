@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAccessRequestRepository, getProjectRepository } from "@/lib/db"
 import {
-  sendTelegramAlert,
+  sendTelegramAlertWithButtons,
   sendEmail,
   buildConfirmationEmail,
 } from "@/lib/notifications"
@@ -29,12 +29,13 @@ export async function POST(req: NextRequest) {
     await repo.save(request)
 
     await Promise.allSettled([
-      sendTelegramAlert(
+      sendTelegramAlertWithButtons(
         `🔔 <b>Nova solicitação de acesso</b>\n` +
         `Projeto: <b>${project.titulo}</b>\n` +
         `Nome: ${nome}\n` +
         `Email: ${email}\n` +
         (motivo ? `Motivo: ${motivo}` : ""),
+        request.id,
       ),
       sendEmail({
         to: email,

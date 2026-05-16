@@ -144,7 +144,7 @@ export function ProjetosClient({ projetos }: { projetos: Project[] }) {
                                 </a>
                               </Button>
                             )}
-                            {projeto.demo && (
+                            {projeto.demo && !projeto.testavel && (
                               <Button size="sm" variant="secondary" asChild>
                                 <a href={projeto.demo} target="_blank" rel="noopener noreferrer">
                                   <ExternalLink className="h-4 w-4" />
