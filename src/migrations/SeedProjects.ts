@@ -136,6 +136,8 @@ const projects = [
 ]
 
 export class SeedProjects1748000000001 implements MigrationInterface {
+  name = "SeedProjects1748000000001"
+
   async up(queryRunner: QueryRunner): Promise<void> {
     for (const p of projects) {
       await queryRunner.query(
