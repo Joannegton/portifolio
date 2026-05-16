@@ -1,7 +1,7 @@
 import { getProjectRepository } from "@/lib/db"
 import { ProjetosClient } from "@/components/ProjetosClient"
 
-export const revalidate = 60
+export const dynamic = "force-dynamic"
 
 export default async function ProjetosPage() {
   const repo = await getProjectRepository()
