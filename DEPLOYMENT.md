@@ -115,7 +115,15 @@ kubectl create secret generic portfolio-secrets -n portfolio-prod \
   --from-literal=POSTGRES_USER=portfolio_user \
   --from-literal=POSTGRES_PASSWORD=<senha-forte> \
   --from-literal=DATABASE_URL="postgresql://portfolio_user:<senha>@portfolio-postgres:5432/portfolio" \
-  --from-literal=AUTH_PUBLIC_KEY="$(curl -s https://auth-demo.joannegton.com/auth/public-key)" \
+  --from-literal=AUTH_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApsjkbgwzC+vqQJ6cWtor
+O3fwYZJdQUI5jDIiev5Rf8ZUG08GSakz7xekGdNNYy5DXT77FFYVEbeNJIVVfaMy
+xGNf3CwK4gjoXQlvPkGnNEXblWCHfAG/n2ovhU8BX1z76RJWOGktfcAaYhv4ZVqZ
+/AR6yEOxI9Ox+H71iG0FSddtKAnjbqW0D6S0zZ1fIpuciyvhE0nMPiGeliL7kepM
+l6VeuWzQSg15+Pjuxy2ncf9vf/BDLi1EyeEWFfPHEu86PUljD2YuOlQjqjp35MEX
+PUHOzjHT9XaN8sASSCuAz/R01uuOvck5h5xj5Q4MVK5uMk6oiqLGfvc7xNYNPuG2
+MwIDAQAB
+-----END PUBLIC KEY-----" \
   --from-literal=NEXT_PUBLIC_AUTH_SERVICE_URL=https://auth-demo.joannegton.com \
   --from-literal=NEXT_PUBLIC_APP_URL=https://joannegton.com \
   --from-literal=TELEGRAM_BOT_TOKEN=<token-do-bot> \
