@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from "next/server"
 import { verifyJwt } from "@/lib/auth"
 
 const PROTECTED_PATHS = ["/admin"]
-const ADMIN_API_PATHS = ["/api/projects"]
+const ADMIN_API_PATHS = ["/api/projects", "/api/access-requests"]
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
   const isAdminPage = PROTECTED_PATHS.some((p) => pathname.startsWith(p))
+  // POST /api/access-requests is public; PATCH /api/access-requests/:id is admin
   const isAdminApi =
-    ADMIN_API_PATHS.some((p) => pathname.startsWith(p)) &&
-    req.method !== "GET"
+    (pathname.startsWith("/api/projects") && req.method !== "GET") ||
+    (/^\/api\/access-requests\/.+/.exec(pathname) !== null && req.method === "PATCH")
 
   if (!isAdminPage && !isAdminApi) return NextResponse.next()
 
@@ -39,5 +40,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/api/projects/:path*"],
+  matcher: ["/admin/:path*", "/api/projects/:path*", "/api/access-requests/:path*"],
 }

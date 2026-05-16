@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 import Image from "next/image"
 import type { Project } from "@/entities/Project.entity"
+import { SolicitarAcessoModal } from "@/components/SolicitarAcessoModal"
 
 type OrdemTipo = "recentes" | "antigos" | "az"
 
@@ -180,13 +181,19 @@ export function ProjetosClient({ projetos }: { projetos: Project[] }) {
                               </a>
                             </Button>
                           )}
-                          {projeto.demo && (
+                          {projeto.demo && !projeto.testavel && (
                             <Button size="sm" asChild className="flex-1">
                               <a href={projeto.demo} target="_blank" rel="noopener noreferrer">
                                 <ExternalLink className="h-4 w-4 mr-2" />
                                 Ver Demo
                               </a>
                             </Button>
+                          )}
+                          {projeto.testavel && (
+                            <SolicitarAcessoModal
+                              projectId={projeto.id}
+                              projectTitle={projeto.titulo}
+                            />
                           )}
                         </div>
                       </CardContent>
