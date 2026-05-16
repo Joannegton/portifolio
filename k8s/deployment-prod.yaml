@@ -103,6 +103,26 @@ spec:
                 secretKeyRef:
                   name: portfolio-secrets
                   key: NEXT_PUBLIC_AUTH_SERVICE_URL
+            - name: NEXT_PUBLIC_APP_URL
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: NEXT_PUBLIC_APP_URL
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: TELEGRAM_BOT_TOKEN
+            - name: TELEGRAM_CHAT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: TELEGRAM_CHAT_ID
+            - name: RESEND_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: portfolio-secrets
+                  key: RESEND_API_KEY
 
           # ========== RESOURCE LIMITS ==========
           resources:
