@@ -1,7 +1,7 @@
 # ============================================================================
 # DEPLOYMENT + PDB - Configuração de Produção
 # ============================================================================
-# Deploy com 3 replicas, health checks, segurança e disponibilidade
+# Deploy com 1 replica, health checks, segurança e disponibilidade
 
 apiVersion: apps/v1
 kind: Deployment
@@ -18,7 +18,7 @@ metadata:
 
 spec:
   # ========== REPLICAÇÃO ==========
-  replicas: 3 # 3 replicas para alta disponibilidade
+  replicas: 1 # 1 replica suficiente para portfólio de baixo tráfego
 
   revisionHistoryLimit: 5 # Manter últimas 5 revisões (para rollback)
 
@@ -94,9 +94,11 @@ spec:
             requests: # Garantido/reservado
               cpu: 250m # 0.25 CPU
               memory: 256Mi # 256MB RAM
+              ephemeral-storage: 128Mi # armazenamento temporário
             limits: # Máximo permitido
               cpu: 500m # 0.5 CPU
               memory: 512Mi # 512MB RAM
+              ephemeral-storage: 256Mi # armazenamento temporário
 
           # ========== HEALTH CHECKS ==========
 
@@ -202,7 +204,7 @@ metadata:
   labels:
     app: portfolio
 spec:
-  minAvailable: 2 # Mínimo 2 pods sempre rodando
+  minAvailable: 0 # Mínimo 2 pods sempre rodando
   selector:
     matchLabels:
       app: portfolio

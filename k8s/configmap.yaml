@@ -10,7 +10,7 @@ kind: ConfigMap
 
 metadata:
   name: portfolio-config             # Nome referenciado no deployment.yaml
-  namespace: default                 # Mesmo namespace
+  namespace: portfolio-prod          # Mesmo namespace dos pods
   labels:
     app: portfolio                   # Identificação
 

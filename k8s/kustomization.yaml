@@ -29,4 +29,4 @@ images:
 
 replicas:
 - name: portfolio-app
-  count: 3
+  count: 1

@@ -2,7 +2,8 @@
 
 **App:** Next.js 15 (estático, sem banco de dados)  
 **Cluster:** K3s + Rancher (`bolacha@racher`)  
-**Namespace:** `portfolio-prod`
+**Namespace:** `portfolio-prod`  
+**Réplicas:** 1 (portfólio de baixo tráfego)
 
 ---
 
@@ -19,7 +20,7 @@ Traefik (kube-system) via HTTP interno
     ↓
 Service portfolio-app (port 80 → 3000)
     ↓
-Pod 1, Pod 2, Pod 3 (joannegton/portfolio:v1.0.0)
+Pod (joannegton/portfolio:v1.0.0)
 ```
 
 **SSL:** Gerenciado pelo Cloudflare — sem cert-manager, sem Let's Encrypt no cluster.
@@ -96,9 +97,14 @@ curl -v https://joannegton.com
 docker build -t joannegton/portfolio:v1.1.0 .
 docker push joannegton/portfolio:v1.1.0
 
-# 2. Atualizar newTag no k8s/kustomization.yaml
+# 2. Atualizar newTag no k8s/kustomization.yaml:
+#    newTag: v1.1.0
+
 # 3. Aplicar
 kubectl apply -k k8s/
+
+# Acompanhar o rollout
+kubectl rollout status deployment/portfolio-app -n portfolio-prod
 
 # Rollback se necessário
 kubectl rollout undo deployment/portfolio-app -n portfolio-prod

@@ -38,25 +38,25 @@ metadata:
   labels:
     app: portfolio
 rules:
-# Ler ConfigMaps (variáveis de ambiente)
-- apiGroups: [""]
-  resources: ["configmaps"]
-  verbs: ["get", "list", "watch"]
+  # Ler ConfigMaps (variáveis de ambiente)
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
 
-# Ler Secrets (se necessário)
-- apiGroups: [""]
-  resources: ["secrets"]
-  verbs: ["get", "list"]
+  # Ler Secrets (se necessário)
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
 
-# Ler informações de Pods (para descoberta de serviço)
-- apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["get", "list", "watch"]
+  # Ler informações de Pods (para descoberta de serviço)
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
 
-# Ler Services
-- apiGroups: [""]
-  resources: ["services"]
-  verbs: ["get", "list", "watch"]
+  # Ler Services
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch"]
 
 ---
 # ========== ROLEBINDING ==========
@@ -73,9 +73,9 @@ roleRef:
   kind: Role
   name: portfolio-app-role
 subjects:
-- kind: ServiceAccount
-  name: portfolio-app-sa
-  namespace: portfolio-prod
+  - kind: ServiceAccount
+    name: portfolio-app-sa
+    namespace: portfolio-prod
 
 ---
 # ========== RESOURCE QUOTA ==========
@@ -90,23 +90,23 @@ metadata:
 spec:
   hard:
     # CPU e Memory
-    requests.cpu: "4"              # Total máximo de CPU requests
-    requests.memory: "4Gi"         # Total máximo de memória requests
-    limits.cpu: "8"                # Total máximo de CPU limits
-    limits.memory: "8Gi"           # Total máximo de memória limits
+    requests.cpu: "300m"           # Total máximo de CPU requests
+    requests.memory: "300Mi"       # Total máximo de memória requests
+    limits.cpu: "600m"             # Total máximo de CPU limits
+    limits.memory: "600Mi"         # Total máximo de memória limits
 
     # Contagem de recursos
-    pods: "20"                     # Máximo de pods
-    services: "5"                  # Máximo de services
-    replicationcontrollers: "5"    # Máximo de replication controllers
+    pods: "3"                      # Máximo de pods
+    services: "2"                  # Máximo de services
+    replicationcontrollers: "2"    # Máximo de replication controllers
     resourcequotas: "1"            # Máximo de resource quotas
 
     # Armazenamento
     persistentvolumeclaims: "2"    # Máximo de PVCs
 
     # Secrets e ConfigMaps
-    secrets: "10"
-    configmaps: "10"
+    secrets: "5"
+    configmaps: "5"
 
 ---
 # ========== NETWORK POLICY ==========
@@ -124,60 +124,58 @@ spec:
       app: portfolio
 
   policyTypes:
-  - Ingress
-  - Egress
+    - Ingress
+    - Egress
 
   # ========== INGRESS (ENTRADA) ==========
   # De onde pods podem receber tráfego
   ingress:
+    # Permite do Traefik (está em kube-system no RKE2)
+    - from:
+        - namespaceSelector: {} # Permite de qualquer namespace
+      ports:
+        - protocol: TCP
+          port: 3000
 
-  # Permite do Traefik (está em kube-system no RKE2)
-  - from:
-    - namespaceSelector: {}      # Permite de qualquer namespace
-    ports:
-    - protocol: TCP
-      port: 3000
-
-  # Permite da mesma namespace
-  - from:
-    - podSelector: {}
-    ports:
-    - protocol: TCP
-      port: 3000
+    # Permite da mesma namespace
+    - from:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 3000
 
   # ========== EGRESS (SAÍDA) ==========
   # Para onde pods podem enviar tráfego
   egress:
+    # DNS (porta 53)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 53
+        - protocol: UDP
+          port: 53
 
-  # DNS (porta 53)
-  - to:
-    - namespaceSelector: {}
-    ports:
-    - protocol: TCP
-      port: 53
-    - protocol: UDP
-      port: 53
+    # HTTPS (porta 443) - APIs externas
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
 
-  # HTTPS (porta 443) - APIs externas
-  - to:
-    - namespaceSelector: {}
-    ports:
-    - protocol: TCP
-      port: 443
+    # HTTP (porta 80) - APIs externas
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 80
 
-  # HTTP (porta 80) - APIs externas
-  - to:
-    - namespaceSelector: {}
-    ports:
-    - protocol: TCP
-      port: 80
-
-  # Comunicação interna entre pods
-  - to:
-    - podSelector: {}
-    ports:
-    - protocol: TCP
-      port: 3000
+    # Comunicação interna entre pods
+    - to:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 3000
 
 ---
 # ========== LIMIT RANGE ==========
@@ -189,26 +187,26 @@ metadata:
   namespace: portfolio-prod
 spec:
   limits:
-  # Limites para Containers
-  - max:
-      cpu: "1000m"
-      memory: "1Gi"
-    min:
-      cpu: "100m"
-      memory: "64Mi"
-    default:
-      cpu: "500m"
-      memory: "512Mi"
-    defaultRequest:
-      cpu: "250m"
-      memory: "256Mi"
-    type: Container
+    # Limites para Containers
+    - max:
+        cpu: "1000m"
+        memory: "1Gi"
+      min:
+        cpu: "100m"
+        memory: "64Mi"
+      default:
+        cpu: "500m"
+        memory: "512Mi"
+      defaultRequest:
+        cpu: "250m"
+        memory: "256Mi"
+      type: Container
 
-  # Limites para Pods
-  - max:
-      cpu: "2000m"
-      memory: "2Gi"
-    min:
-      cpu: "100m"
-      memory: "64Mi"
-    type: Pod
+    # Limites para Pods
+    - max:
+        cpu: "2000m"
+        memory: "2Gi"
+      min:
+        cpu: "100m"
+        memory: "64Mi"
+      type: Pod
