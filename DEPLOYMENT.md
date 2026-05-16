@@ -23,7 +23,7 @@ Traefik (kube-system)
 │                                 │                                     │
 │  portfolio-app (Next.js)        │  auth-demo (NestJS)                │
 │       ↓                         │       ↓                            │
-│  portfolio-postgres (Postgres)  │  auth-demo-postgres (Postgres)     │
+│  portfolio-postgres (Postgres)  │   auth-demo-postgres (Postgres)     │
 │                                 │  auth-demo-reset (CronJob 3h)      │
 └─────────────────────────────────┴────────────────────────────────────┘
 ```
@@ -43,7 +43,7 @@ portifolio/k8s/
 ├── kustomization.yaml          ← entry point
 ├── namespace.yaml              ← namespace, RBAC, quotas (pods: 5)
 ├── configmap.yaml              ← variáveis não-sensíveis
-├── postgres.yaml               ← StatefulSet + PVC 5Gi + Service
+├── postgres.yaml               ← StatefulSet + PVC 500Mi + Service
 ├── deployment-prod.yaml        ← Deployment + PDB
 ├── service-prod.yaml           ← Service ClusterIP
 ├── ingressroute-prod.yaml      ← Traefik IngressRoute + headers
@@ -90,7 +90,58 @@ auth/k8s/
 | `NEXT_PUBLIC_APP_URL` | URL base para links de aprovação de acesso | `https://joannegton.com` |
 | `TELEGRAM_BOT_TOKEN` | notificação ao dono (nova solicitação de acesso) | [@BotFather](https://t.me/botfather) |
 | `TELEGRAM_CHAT_ID` | seu chat_id pessoal | bot `@userinfobot` ou `getUpdates` da API |
+| `TELEGRAM_WEBHOOK_SECRET` | valida callbacks do Telegram no webhook | string aleatória (ex: `openssl rand -hex 32`) |
+| `AUTH_SERVICE_ID` | UUID do serviço no auth service (para registrar novos usuários) | endpoint `GET /services` do auth service |
+| `TEST_USER_EMAIL` | email do usuário de teste pré-configurado | você define |
+| `TEST_USER_PASSWORD` | senha do usuário de teste pré-configurado | você define |
 | `RESEND_API_KEY` | enviar emails ao solicitante | dashboard resend.com |
+
+---
+
+## Telegram Webhook (botões de ação nas notificações)
+
+Quando uma solicitação de acesso chega, o bot envia uma mensagem com 2 botões inline:
+- **👤 Criar usuário** — cria conta no auth service com o email do solicitante + senha forte aleatória e envia as credenciais por email
+- **🔑 Mandar usuário existente** — envia por email as credenciais do `TEST_USER_EMAIL/PASSWORD`
+
+O handler está em `/api/telegram/webhook`. O Telegram precisa de uma URL pública para entregar os callbacks.
+
+### Registrar o webhook (fazer após cada deploy ou troca de domínio)
+
+```bash
+curl -s -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://joannegton.com/api/telegram/webhook",
+    "secret_token": "<TELEGRAM_WEBHOOK_SECRET>"
+  }'
+```
+
+Resposta esperada: `{"ok":true,"result":true,"description":"Webhook was set"}`
+
+### Verificar webhook ativo
+
+```bash
+curl -s "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/getWebhookInfo" | python3 -m json.tool
+```
+
+### Desenvolvimento local (ngrok)
+
+O Telegram não consegue entregar callbacks para `localhost`. Use ngrok para expor a porta 3000:
+
+```bash
+ngrok http 3000
+```
+
+Então registre o webhook com a URL do ngrok:
+
+```bash
+curl -s -X POST "https://api.telegram.org/bot<TOKEN>/setWebhook" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://<id>.ngrok-free.app/api/telegram/webhook"}'
+```
+
+> Sem `secret_token` em dev (deixar `TELEGRAM_WEBHOOK_SECRET` vazio no `.env.local`).
 
 ---
 
@@ -128,6 +179,10 @@ MwIDAQAB
   --from-literal=NEXT_PUBLIC_APP_URL=https://joannegton.com \
   --from-literal=TELEGRAM_BOT_TOKEN=<token-do-bot> \
   --from-literal=TELEGRAM_CHAT_ID=<seu-chat-id> \
+  --from-literal=TELEGRAM_WEBHOOK_SECRET=<string-aleatoria> \
+  --from-literal=AUTH_SERVICE_ID=<uuid-do-servico> \
+  --from-literal=TEST_USER_EMAIL=<email-usuario-teste> \
+  --from-literal=TEST_USER_PASSWORD=<senha-usuario-teste> \
   --from-literal=RESEND_API_KEY=<chave-resend>
 ```
 
@@ -274,7 +329,7 @@ kubectl exec -it statefulset/portfolio-postgres -n portfolio-prod -- psql -U por
 kubectl get secret portfolio-secrets -n portfolio-prod -o jsonpath='{.data}' | python3 -c "import sys,json; [print(k) for k in json.load(sys.stdin)]"
 
 # Ver env vars do pod em execução
-kubectl exec -it deployment/portfolio-app -n portfolio-prod -- env | grep -E "DATABASE|AUTH|TELEGRAM|RESEND|APP_URL"
+kubectl exec -it deployment/portfolio-app -n portfolio-prod -- env | grep -E "DATABASE|AUTH|TELEGRAM|RESEND|APP_URL|TEST_USER"
 ```
 
 ### Swagger não aparece em auth-demo
@@ -309,3 +364,4 @@ kubectl delete namespace demos
 - [ ] Imagem portfolio no Docker Hub (`docker pull joannegton/portfolio:latest`)
 - [ ] Imagem auth no Docker Hub (`docker pull joannegton/auth:latest`)
 - [ ] Dry-run sem erros (`kubectl apply -k portifolio/k8s/ --dry-run=client`)
+- [ ] Webhook do Telegram registrado (`/setWebhook` com URL de produção + `secret_token`)
